@@ -1,1138 +1,444 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Gran Turismo 7 — Sardegna WTC 800</title>
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:ital,wght@0,400;0,600;0,700;1,700&family=Inter:wght@400;500;600;700&display=swap');
-
-    :root {
-      --gt-red: #e60012;
-      --gt-orange: #ff5e1a;
-      --gt-green: #008f4c;
-      --gt-blue: #00a8ff;
-      --gt-gold: #ffd700;
-      --gt-dark: #0a0c10;
-      --gt-panel: rgba(14, 18, 26, 0.85);
-      --gt-border: rgba(255, 255, 255, 0.14);
-    }
-
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      user-select: none;
-      -webkit-user-select: none;
-    }
-
-    body, html {
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-      background-color: var(--gt-dark);
-      font-family: 'Inter', sans-serif;
-      color: #ffffff;
-    }
-
-    #game-container {
-      position: relative;
-      width: 100vw;
-      height: 100vh;
-      overflow: hidden;
-      background: #141018;
-    }
-
-    canvas {
-      display: block;
-      width: 100%;
-      height: 100%;
-    }
-
-    .font-race {
-      font-family: 'Chakra Petch', sans-serif;
-    }
-
-    .gt-panel {
-      background: var(--gt-panel);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      border: 1px solid var(--gt-border);
-      border-radius: 10px;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
-    }
-
-    /* ==================== MENU OVERLAY ==================== */
-    #menu-overlay {
-      position: absolute;
-      inset: 0;
-      z-index: 30;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      padding: clamp(16px, 3vw, 36px);
-      background: linear-gradient(135deg, rgba(10, 12, 18, 0.94) 0%, rgba(28, 16, 22, 0.88) 55%, rgba(10, 12, 18, 0.96) 100%);
-      overflow-y: auto;
-    }
-
-    .menu-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.12);
-      padding-bottom: 14px;
-      flex-wrap: wrap;
-      gap: 12px;
-    }
-
-    .gt-logo-group {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-    }
-
-    .gt-badge {
-      background: linear-gradient(135deg, #e60012, #99000b);
-      padding: 6px 14px;
-      border-radius: 6px;
-      font-family: 'Chakra Petch', sans-serif;
-      font-weight: 700;
-      font-style: italic;
-      font-size: 1.35rem;
-      letter-spacing: 1px;
-      box-shadow: 0 0 20px rgba(230, 0, 18, 0.45);
-    }
-
-    .event-title h1 {
-      font-family: 'Chakra Petch', sans-serif;
-      font-size: clamp(1.2rem, 2.5vw, 1.9rem);
-      font-weight: 700;
-      letter-spacing: 0.5px;
-      text-transform: uppercase;
-    }
-
-    .event-title p {
-      font-size: 0.85rem;
-      color: #a0aab8;
-    }
-
-    .car-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-      gap: 18px;
-      margin: 18px 0;
-    }
-
-    .car-card {
-      position: relative;
-      padding: 18px;
-      border-radius: 12px;
-      background: rgba(20, 25, 36, 0.85);
-      border: 2px solid rgba(255, 255, 255, 0.12);
-      cursor: pointer;
-      transition: all 0.22s ease;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-    }
-
-    .car-card:hover {
-      transform: translateY(-4px);
-      border-color: rgba(255, 255, 255, 0.35);
-      background: rgba(28, 35, 50, 0.95);
-    }
-
-    .car-card.selected {
-      border-color: var(--gt-orange);
-      background: linear-gradient(165deg, rgba(255, 94, 26, 0.18), rgba(18, 22, 32, 0.96));
-      box-shadow: 0 0 25px rgba(255, 94, 26, 0.32);
-    }
-
-    .car-card-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      margin-bottom: 10px;
-    }
-
-    .car-class-tag {
-      font-size: 0.7rem;
-      font-weight: 700;
-      padding: 3px 8px;
-      border-radius: 4px;
-      background: rgba(255, 255, 255, 0.12);
-      color: #e2e8f0;
-      letter-spacing: 0.5px;
-    }
-
-    .car-pp {
-      font-family: 'Chakra Petch', sans-serif;
-      font-weight: 700;
-      color: var(--gt-gold);
-      font-size: 0.95rem;
-    }
-
-    .car-preview-box {
-      height: 76px;
-      margin: 8px 0 12px;
-      border-radius: 8px;
-      background: radial-gradient(circle at center, rgba(255,255,255,0.08), rgba(0,0,0,0.45));
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      overflow: hidden;
-    }
-
-    .car-preview-canvas {
-      width: 200px;
-      height: 72px;
-    }
-
-    .car-name {
-      font-family: 'Chakra Petch', sans-serif;
-      font-size: 1.2rem;
-      font-weight: 700;
-      margin-bottom: 4px;
-    }
-
-    .car-desc {
-      font-size: 0.78rem;
-      color: #94a3b8;
-      margin-bottom: 14px;
-      line-height: 1.35;
-    }
-
-    .stat-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      font-size: 0.75rem;
-      margin-bottom: 6px;
-      color: #cbd5e1;
-    }
-
-    .stat-bar-bg {
-      width: 58%;
-      height: 6px;
-      background: rgba(255, 255, 255, 0.12);
-      border-radius: 99px;
-      overflow: hidden;
-    }
-
-    .stat-bar-fill {
-      height: 100%;
-      border-radius: 99px;
-      background: linear-gradient(90deg, var(--gt-orange), var(--gt-gold));
-    }
-
-    .menu-footer {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 16px;
-      padding-top: 14px;
-      border-top: 1px solid rgba(255, 255, 255, 0.12);
-    }
-
-    .race-options {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      flex-wrap: wrap;
-    }
-
-    .option-pill {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      background: rgba(255, 255, 255, 0.06);
-      padding: 8px 14px;
-      border-radius: 8px;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      font-size: 0.85rem;
-    }
-
-    .lap-btn {
-      background: rgba(255, 255, 255, 0.1);
-      border: none;
-      color: white;
-      padding: 4px 10px;
-      border-radius: 5px;
-      cursor: pointer;
-      font-family: 'Chakra Petch', sans-serif;
-      font-weight: 700;
-    }
-
-    .lap-btn.active {
-      background: var(--gt-red);
-    }
-
-    .controls-hint {
-      font-size: 0.78rem;
-      color: #94a3b8;
-    }
-
-    .controls-hint kbd {
-      background: rgba(255, 255, 255, 0.14);
-      padding: 2px 6px;
-      border-radius: 4px;
-      color: #fff;
-      font-family: monospace;
-      font-size: 0.75rem;
-    }
-
-    .start-btn {
-      background: linear-gradient(135deg, #ff5e1a 0%, #e60012 100%);
-      color: white;
-      border: none;
-      padding: 14px 36px;
-      border-radius: 10px;
-      font-family: 'Chakra Petch', sans-serif;
-      font-size: 1.2rem;
-      font-weight: 700;
-      letter-spacing: 1px;
-      text-transform: uppercase;
-      cursor: pointer;
-      box-shadow: 0 6px 24px rgba(230, 0, 18, 0.45);
-      transition: transform 0.15s ease, box-shadow 0.15s ease;
-    }
-
-    .start-btn:hover {
-      transform: scale(1.03);
-      box-shadow: 0 8px 30px rgba(255, 94, 26, 0.65);
-    }
-
-    /* ==================== HUD OVERLAY ==================== */
-    #hud-overlay {
-      position: absolute;
-      inset: 0;
-      z-index: 15;
-      pointer-events: none;
-      display: none;
-      flex-direction: column;
-      justify-content: space-between;
-      padding: clamp(10px, 2vw, 20px);
-    }
-
-    .hud-top {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
-
-    .hud-box {
-      padding: 10px 14px;
-    }
-
-    .pos-lap-group {
-      display: flex;
-      align-items: center;
-      gap: 18px;
-    }
-
-    .hud-label {
-      font-size: 0.68rem;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      color: #94a3b8;
-    }
-
-    .hud-big-val {
-      font-family: 'Chakra Petch', sans-serif;
-      font-size: clamp(1.35rem, 2.5vw, 1.95rem);
-      font-weight: 700;
-      line-height: 1.1;
-    }
-
-    .hud-big-val span {
-      font-size: 0.95rem;
-      color: #94a3b8;
-    }
-
-    .timing-group {
-      display: flex;
-      gap: 16px;
-      text-align: right;
-    }
-
-    .time-val {
-      font-family: 'Chakra Petch', sans-serif;
-      font-size: 1.05rem;
-      font-weight: 600;
-    }
-
-    .hud-actions {
-      display: flex;
-      gap: 8px;
-      pointer-events: auto;
-    }
-
-    .icon-btn {
-      background: var(--gt-panel);
-      border: 1px solid var(--gt-border);
-      color: white;
-      padding: 8px 12px;
-      border-radius: 8px;
-      cursor: pointer;
-      font-family: 'Chakra Petch', sans-serif;
-      font-weight: 600;
-      font-size: 0.82rem;
-      transition: background 0.15s;
-    }
-
-    .icon-btn:hover {
-      background: rgba(255, 255, 255, 0.18);
-    }
-
-    .icon-btn.pit-request-active {
-      background: rgba(0, 168, 255, 0.45);
-      border-color: #38bdf8;
-      color: #e0f2fe;
-    }
-
-    #center-banner {
-      position: absolute;
-      top: 24%;
-      left: 50%;
-      transform: translateX(-50%);
-      text-align: center;
-      pointer-events: none;
-    }
-
-    #countdown-text {
-      font-family: 'Chakra Petch', sans-serif;
-      font-size: clamp(3rem, 7vw, 5.5rem);
-      font-weight: 700;
-      font-style: italic;
-      color: #fff;
-      text-shadow: 0 4px 25px rgba(230, 0, 18, 0.85);
-    }
-
-    #status-pill {
-      display: inline-block;
-      margin-top: 8px;
-      padding: 6px 16px;
-      border-radius: 99px;
-      font-family: 'Chakra Petch', sans-serif;
-      font-weight: 700;
-      font-size: 0.9rem;
-      letter-spacing: 0.8px;
-      background: rgba(0, 168, 255, 0.85);
-      color: #fff;
-      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
-      opacity: 0;
-      transition: opacity 0.2s;
-    }
-
-    #pit-overlay {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      padding: 22px 28px;
-      text-align: center;
-      display: none;
-      z-index: 25;
-      min-width: 320px;
-      pointer-events: auto;
-      border: 1px solid rgba(56, 189, 248, 0.45);
-    }
-
-    .pit-bar-wrap {
-      width: 100%;
-      height: 10px;
-      background: rgba(255, 255, 255, 0.15);
-      border-radius: 99px;
-      overflow: hidden;
-      margin: 12px 0;
-    }
-
-    #pit-bar-fill {
-      width: 0%;
-      height: 100%;
-      background: linear-gradient(90deg, #00a8ff, #00e676);
-    }
-
-    .pit-actions {
-      display: flex;
-      gap: 10px;
-      justify-content: center;
-      margin-top: 10px;
-    }
-
-    .pit-btn {
-      padding: 8px 14px;
-      border-radius: 7px;
-      border: 1px solid rgba(255,255,255,0.2);
-      font-family: 'Chakra Petch', sans-serif;
-      font-weight: 700;
-      font-size: 0.85rem;
-      cursor: pointer;
-      color: #fff;
-      background: rgba(255,255,255,0.12);
-    }
-
-    .pit-btn.primary {
-      background: linear-gradient(135deg, #00a8ff, #0066cc);
-      border-color: #38bdf8;
-    }
-
-    @keyframes pulseAmber {
-      0%, 100% { opacity: 1; transform: scale(1); }
-      50% { opacity: 0.72; transform: scale(1.03); }
-    }
-
-    .low-fuel-alert {
-      animation: pulseAmber 0.75s infinite ease-in-out;
-      border: 1px solid #fbbf24;
-    }
-
-    .hud-bottom {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-end;
-      gap: 12px;
-      flex-wrap: wrap;
-    }
-
-    .mfd-panel {
-      padding: 12px 16px;
-      min-width: 235px;
-      pointer-events: auto;
-    }
-
-    .mfd-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 8px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.12);
-      padding-bottom: 4px;
-    }
-
-    .mfd-title {
-      font-family: 'Chakra Petch', sans-serif;
-      font-size: 0.8rem;
-      font-weight: 700;
-      color: var(--gt-orange);
-      letter-spacing: 0.8px;
-    }
-
-    .fuel-map-controls {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .fm-btn {
-      background: rgba(255, 255, 255, 0.14);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      color: white;
-      width: 24px;
-      height: 24px;
-      border-radius: 5px;
-      font-weight: 700;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .fm-btn:active {
-      background: var(--gt-orange);
-    }
-
-    .gauge-row {
-      margin-bottom: 8px;
-    }
-
-    .gauge-label-row {
-      display: flex;
-      justify-content: space-between;
-      font-size: 0.75rem;
-      margin-bottom: 4px;
-    }
-
-    .gauge-track {
-      width: 100%;
-      height: 8px;
-      background: rgba(255, 255, 255, 0.12);
-      border-radius: 4px;
-      overflow: hidden;
-    }
-
-    .gauge-fill {
-      height: 100%;
-      transition: width 0.15s ease, background-color 0.2s ease;
-    }
-
-    .tacho-panel {
-      padding: 12px 18px;
-      display: flex;
-      align-items: center;
-      gap: 18px;
-    }
-
-    .gear-box {
-      width: 48px;
-      height: 54px;
-      border-radius: 8px;
-      background: rgba(230, 0, 18, 0.22);
-      border: 1px solid rgba(230, 0, 18, 0.6);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .gear-val {
-      font-family: 'Chakra Petch', sans-serif;
-      font-size: 1.7rem;
-      font-weight: 700;
-      line-height: 1;
-    }
-
-    .speed-block {
-      text-align: right;
-    }
-
-    .speed-val {
-      font-family: 'Chakra Petch', sans-serif;
-      font-size: clamp(2rem, 3.5vw, 2.7rem);
-      font-weight: 700;
-      line-height: 0.95;
-    }
-
-    .rpm-bar-container {
-      width: 150px;
-      height: 8px;
-      background: rgba(255, 255, 255, 0.12);
-      border-radius: 4px;
-      overflow: hidden;
-      margin-top: 6px;
-    }
-
-    #rpm-bar-fill {
-      height: 100%;
-      width: 0%;
-      background: linear-gradient(90deg, #00a8ff 0%, #00e676 60%, #ff5e1a 82%, #e60012 95%);
-    }
-
-    .minimap-panel {
-      padding: 8px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-
-    #minimap-canvas {
-      width: 130px;
-      height: 105px;
-    }
-
-    #touch-controls {
-      display: none;
-      position: absolute;
-      bottom: 125px;
-      left: 0;
-      right: 0;
-      padding: 0 16px;
-      justify-content: space-between;
-      pointer-events: none;
-      z-index: 18;
-    }
-
-    .touch-cluster {
-      display: flex;
-      gap: 10px;
-      pointer-events: auto;
-    }
-
-    .touch-btn {
-      width: 58px;
-      height: 58px;
-      border-radius: 14px;
-      background: rgba(15, 20, 30, 0.72);
-      border: 1px solid rgba(255, 255, 255, 0.25);
-      color: white;
-      font-family: 'Chakra Petch', sans-serif;
-      font-weight: 700;
-      font-size: 1.1rem;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      backdrop-filter: blur(6px);
-      touch-action: manipulation;
-    }
-
-    .touch-btn:active, .touch-btn.pressed {
-      background: rgba(255, 94, 26, 0.75);
-      border-color: #fff;
-    }
-
-    @media (max-width: 820px) {
-      #touch-controls {
-        display: flex;
-      }
-      .minimap-panel {
-        display: none;
-      }
-      .hud-bottom {
-        justify-content: space-between;
-      }
-    }
-
-    /* ==================== RESULTS OVERLAY ==================== */
-    #results-overlay {
-      position: absolute;
-      inset: 0;
-      z-index: 35;
-      display: none;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-      background: rgba(8, 10, 15, 0.88);
-      backdrop-filter: blur(10px);
-    }
-
-    .results-card {
-      width: 100%;
-      max-width: 640px;
-      padding: 28px;
-    }
-
-    .results-title {
-      font-family: 'Chakra Petch', sans-serif;
-      font-size: 2rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      color: var(--gt-gold);
-      margin-bottom: 4px;
-    }
-
-    .standings-table {
-      width: 100%;
-      border-collapse: collapse;
-      margin: 18px 0;
-      font-size: 0.9rem;
-    }
-
-    .standings-table th {
-      text-align: left;
-      padding: 8px 10px;
-      color: #94a3b8;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.14);
-      font-size: 0.75rem;
-      text-transform: uppercase;
-    }
-
-    .standings-table td {
-      padding: 10px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-    }
-
-    .player-row {
-      background: rgba(255, 94, 26, 0.2);
-      font-weight: 700;
-    }
-
-    .reward-banner {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      background: rgba(255, 215, 0, 0.12);
-      border: 1px solid rgba(255, 215, 0, 0.35);
-      padding: 12px 18px;
-      border-radius: 8px;
-      margin-bottom: 20px;
-    }
-
-    .results-actions {
-      display: flex;
-      justify-content: flex-end;
-      gap: 12px;
-    }
-  </style>
-</head>
-<body>
-  <div id="game-container">
-    <canvas id="race-canvas"></canvas>
-
-    <!-- ==================== MAIN MENU ==================== -->
-    <div id="menu-overlay">
-      <div class="menu-header">
-        <div class="gt-logo-group">
-          <div class="gt-badge">GT7</div>
-          <div class="event-title">
-            <h1>World Touring Car 800 — Sardegna</h1>
-            <p>Sardegna - Road Track - A • Sunset Endurance • Tire & Fuel Strategy</p>
-          </div>
-        </div>
-        <div class="option-pill">
-          <span>Credits:</span>
-          <strong id="credits-display" class="font-race" style="color: var(--gt-gold); font-size: 1.05rem;">Cr. 1,250,000</strong>
-        </div>
-      </div>
-
-      <div>
-        <div style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; color: #cbd5e1; font-weight: 600;">
-          Select Your Gr.1 / Gr.3 Machine
-        </div>
-        <div class="car-grid" id="car-grid"></div>
-      </div>
-
-      <div class="menu-footer">
-        <div class="race-options">
-          <div class="option-pill">
-            <span>Race Length:</span>
-            <button class="lap-btn active" data-laps="3">3 Laps</button>
-            <button class="lap-btn" data-laps="5">5 Laps</button>
-            <button class="lap-btn" data-laps="8">8 Laps</button>
-          </div>
-          <div class="controls-hint">
-            <kbd>W A S D</kbd> / <kbd>Arrows</kbd> Drive &nbsp;•&nbsp;
-            <kbd>Space</kbd> Drift &nbsp;•&nbsp;
-            <kbd>P</kbd> Pit In &nbsp;•&nbsp;
-            <kbd>Q/E</kbd> Fuel Map
-          </div>
-        </div>
-        <button class="start-btn" id="start-race-btn">Start Race</button>
-      </div>
+<html lang="en"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Gran Turismo 7 — Sardegna WTC 800</title>
+<style>
+:root{color-scheme:dark;--o:#ff5e1a;--r:#e60012;--g:#ffd700;--p:rgba(14,18,26,.86)}
+*{box-sizing:border-box;margin:0;padding:0;user-select:none;-webkit-user-select:none}
+html,body{width:100%;height:100%;overflow:hidden;background:#0a0c10;color:#fff;font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
+canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.f{font-family:"Chakra Petch",Impact,system-ui,sans-serif;font-weight:700}
+.panel{background:var(--p);border:1px solid rgba(255,255,255,.14);border-radius:10px;backdrop-filter:blur(10px)}
+#menu{position:absolute;inset:0;z-index:30;display:flex;flex-direction:column;gap:10px;padding:16px;padding-top:max(16px,env(safe-area-inset-top));background:linear-gradient(135deg,#0a0c12 0%,#1c1016 60%,#0a0c12 100%)}
+#menu h1{font-size:clamp(1rem,2.4vw,1.6rem);text-transform:uppercase}
+.hd{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;border-bottom:1px solid rgba(255,255,255,.12);padding-bottom:10px}
+.badge{background:linear-gradient(135deg,#e60012,#99000b);padding:5px 12px;border-radius:6px;font-style:italic;margin-right:10px}
+.tabs{display:flex;gap:6px;flex-wrap:wrap}
+.tab,.btn{background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.16);color:#e2e8f0;padding:6px 13px;border-radius:99px;cursor:pointer;font-weight:700;font-size:.8rem}
+.tab.on,.btn.on{background:var(--o);border-color:var(--o);color:#fff}
+#grid{flex:1;min-height:0;overflow-y:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(235px,1fr));gap:12px;align-content:start;padding-right:4px}
+.card{padding:12px;border-radius:12px;background:rgba(20,25,36,.85);border:2px solid rgba(255,255,255,.1);cursor:pointer}
+.card:hover{border-color:rgba(255,255,255,.4)}
+.card.sel{border-color:var(--o);box-shadow:0 0 20px rgba(255,94,26,.35)}
+.card.lock svg{filter:grayscale(.4) brightness(.85)}
+.card svg{width:100%;height:78px;background:radial-gradient(circle,rgba(255,255,255,.12),rgba(0,0,0,.5));border-radius:8px;margin:6px 0}
+.top{display:flex;justify-content:space-between;font-size:.72rem}
+.top b{color:var(--g)}
+.nm{font-size:1rem;margin-bottom:6px}
+.bar{height:5px;background:rgba(255,255,255,.12);border-radius:9px;margin:3px 0 6px}
+.bar i{display:block;height:100%;border-radius:9px;background:linear-gradient(90deg,var(--o),var(--g))}
+.lb{font-size:.7rem;color:#94a3b8}
+.tag{margin-top:6px;text-align:center;padding:6px;border-radius:7px;font-weight:700;font-size:.8rem}
+.tag.own{background:rgba(0,143,76,.25);color:#4ade80}.tag.buy{background:rgba(255,215,0,.2);color:#fde047}.tag.no{background:rgba(230,0,18,.16);color:#fca5a5}
+.ft{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;border-top:1px solid rgba(255,255,255,.12);padding-top:10px;padding-bottom:env(safe-area-inset-bottom)}
+.go{background:linear-gradient(135deg,#ff5e1a,#e60012);border:0;color:#fff;padding:12px 32px;border-radius:10px;font-size:1.1rem;text-transform:uppercase;cursor:pointer;box-shadow:0 6px 22px rgba(230,0,18,.45)}
+#toast{font-size:.82rem;opacity:0;transition:opacity .25s}
+#hud{position:absolute;inset:0;z-index:15;display:none;pointer-events:none;padding:10px;padding-top:max(10px,env(safe-area-inset-top));padding-bottom:max(10px,env(safe-area-inset-bottom));flex-direction:column;justify-content:space-between}
+.row{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap}
+.box{padding:8px 14px;display:flex;gap:16px}
+.l{font-size:.64rem;text-transform:uppercase;letter-spacing:1px;color:#94a3b8}
+.v{font-size:1.4rem;line-height:1.1}.v small{font-size:.8rem;color:#94a3b8}
+.acts{display:flex;gap:6px;pointer-events:auto}
+.acts button{background:var(--p);border:1px solid rgba(255,255,255,.2);color:#fff;padding:8px 12px;border-radius:8px;font-weight:700;cursor:pointer}
+.acts button.arm{background:rgba(0,168,255,.4);border-color:#38bdf8}
+#ctr{position:absolute;top:22%;left:0;right:0;text-align:center}
+#cd{font-size:clamp(3rem,8vw,5.5rem);font-style:italic;text-shadow:0 4px 25px rgba(230,0,18,.9)}
+#pill{display:inline-block;padding:6px 16px;border-radius:99px;font-weight:700;background:rgba(0,168,255,.9);opacity:0;transition:opacity .2s}
+.g{width:100%;height:8px;background:rgba(255,255,255,.14);border-radius:4px;overflow:hidden;margin:3px 0 7px}
+.g i{display:block;height:100%;transition:width .15s}
+#pit{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);padding:20px 26px;text-align:center;display:none;min-width:300px;border-color:#38bdf8;pointer-events:auto}
+#touch{display:none;justify-content:space-between;padding:0 6px;pointer-events:none}
+#touch div{display:flex;gap:10px;pointer-events:auto}
+#touch button{width:60px;height:60px;border-radius:14px;background:rgba(15,20,30,.75);border:1px solid rgba(255,255,255,.3);color:#fff;font-weight:700;touch-action:manipulation}
+@media (pointer:coarse){#touch{display:flex}}
+#res{position:absolute;inset:0;z-index:35;display:none;align-items:center;justify-content:center;padding:16px;background:rgba(8,10,15,.9)}
+#res .panel{width:100%;max-width:620px;padding:24px}
+table{width:100%;border-collapse:collapse;margin:14px 0;font-size:.88rem}
+th{text-align:left;color:#94a3b8;font-size:.7rem;text-transform:uppercase;padding:6px}
+td{padding:8px 6px;border-top:1px solid rgba(255,255,255,.07)}
+tr.me{background:rgba(255,94,26,.22);font-weight:700}
+.pz{display:flex;justify-content:space-between;align-items:center;background:rgba(255,215,0,.12);border:1px solid rgba(255,215,0,.35);padding:10px 16px;border-radius:8px;margin-bottom:14px}
+</style></head><body>
+<canvas id="c"></canvas>
+
+<div id="menu">
+  <div class="hd">
+    <div style="display:flex;align-items:center"><span class="badge f">GT7</span>
+      <div><h1 class="f">World Touring Car 800 — Sardegna</h1><div class="lb">Road Track A · Sunset Endurance · Tire &amp; Fuel Strategy</div></div></div>
+    <div class="panel" style="padding:6px 14px">Credits: <b id="cr" class="f" style="color:var(--g)"></b></div>
+  </div>
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+    <div class="tabs" id="tabs">
+      <button class="tab on" data-f="ALL">All Cars (16)</button><button class="tab" data-f="OWN">My Garage</button>
+      <button class="tab" data-f="Gr.3">Gr.3</button><button class="tab" data-f="Gr.2">Gr.2</button><button class="tab" data-f="Gr.1">Gr.1 / VGT</button>
+    </div><span id="toast" class="f"></span>
+  </div>
+  <div id="grid"></div>
+  <div class="ft">
+    <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+      <div class="panel" style="padding:6px 12px;display:flex;gap:6px;align-items:center">Laps:
+        <button class="btn on" data-l="3">3</button><button class="btn" data-l="5">5</button><button class="btn" data-l="8">8</button></div>
+      <div class="lb">WASD / Arrows drive · P box in · 1–6 fuel map</div>
     </div>
+    <button class="go f" id="start">Start Race</button>
+  </div>
+</div>
 
-    <!-- ==================== LIVE TELEMETRY HUD ==================== -->
-    <div id="hud-overlay">
-      <div class="hud-top">
-        <div class="gt-panel hud-box pos-lap-group">
-          <div>
-            <div class="hud-label">Position</div>
-            <div class="hud-big-val" id="hud-pos">1<span>/6</span></div>
-          </div>
-          <div style="width: 1px; height: 32px; background: rgba(255,255,255,0.14);"></div>
-          <div>
-            <div class="hud-label">Lap</div>
-            <div class="hud-big-val" id="hud-lap">1<span>/3</span></div>
-          </div>
-          <div style="width: 1px; height: 32px; background: rgba(255,255,255,0.14);"></div>
-          <div>
-            <div class="hud-label">Gap to Leader</div>
-            <div class="time-val" id="hud-gap" style="color: #38bdf8;">LEADER</div>
-          </div>
-        </div>
-
-        <div class="gt-panel hud-box timing-group">
-          <div>
-            <div class="hud-label">Current Lap</div>
-            <div class="time-val" id="hud-cur-lap">0:00.000</div>
-          </div>
-          <div>
-            <div class="hud-label">Best Lap</div>
-            <div class="time-val" id="hud-best-lap" style="color: #c084fc;">--:--.---</div>
-          </div>
-        </div>
-
-        <div class="hud-actions">
-          <button class="icon-btn" id="pit-toggle-btn" title="Request Pit Stop at End of Lap (P)">🏁 Box In</button>
-          <button class="icon-btn" id="toggle-sound-btn">🔊 Audio</button>
-          <button class="icon-btn" id="quit-race-btn">✕ Exit</button>
-        </div>
-      </div>
-
-      <div id="center-banner">
-        <div id="countdown-text"></div>
-        <div id="status-pill">SLIPSTREAM BOOST</div>
-      </div>
-
-      <div class="gt-panel" id="pit-overlay">
-        <div class="font-race" style="font-size: 1.35rem; font-weight: 700; color: #38bdf8;">PIT CREW SERVICING</div>
-        <div id="pit-status-text" style="font-size: 0.85rem; color: #cbd5e1; margin-top: 4px;">Refueling & Fitting Fresh Racing Hards...</div>
-        <div class="pit-bar-wrap">
-          <div id="pit-bar-fill"></div>
-        </div>
-        <div style="display:flex; justify-content:space-between; font-size:0.78rem; color:#94a3b8;">
-          <span id="pit-fuel-readout">Fuel: 100%</span>
-          <span id="pit-tire-readout">Tires: 100%</span>
-        </div>
-        <div class="pit-actions">
-          <button class="pit-btn" id="pit-release-btn">Release Now (Splash & Go)</button>
-          <button class="pit-btn primary" id="pit-full-btn">Fill 100% & Go</button>
-        </div>
-      </div>
-
-      <div id="touch-controls">
-        <div class="touch-cluster">
-          <button class="touch-btn" id="btn-left">◀</button>
-          <button class="touch-btn" id="btn-right">▶</button>
-        </div>
-        <div class="touch-cluster">
-          <button class="touch-btn" id="btn-brake" style="background: rgba(230,0,18,0.45);">BRK</button>
-          <button class="touch-btn" id="btn-gas" style="background: rgba(0,143,76,0.55);">GAS</button>
-        </div>
-      </div>
-
-      <div class="hud-bottom">
-        <div class="gt-panel mfd-panel" id="mfd-panel">
-          <div class="mfd-header">
-            <span class="mfd-title">MFD • FUEL & TIRES</span>
-            <div class="fuel-map-controls">
-              <button class="fm-btn" id="fm-down" title="More Power (Q)">-</button>
-              <span class="font-race" style="font-size: 0.85rem; font-weight: 700;">MAP <span id="hud-fm-val" style="color: var(--gt-orange);">1</span></span>
-              <button class="fm-btn" id="fm-up" title="Lean / Save Fuel (E)">+</button>
-            </div>
-          </div>
-
-          <div class="gauge-row">
-            <div class="gauge-label-row">
-              <span>Fuel Remaining</span>
-              <span class="font-race" id="hud-fuel-pct">100% (4.2 Laps)</span>
-            </div>
-            <div class="gauge-track">
-              <div class="gauge-fill" id="hud-fuel-bar" style="width: 100%; background: #ff9800;"></div>
-            </div>
-          </div>
-
-          <div class="gauge-row" style="margin-bottom: 0;">
-            <div class="gauge-label-row">
-              <span>Racing Hard Grip</span>
-              <span class="font-race" id="hud-tire-pct">100%</span>
-            </div>
-            <div class="gauge-track">
-              <div class="gauge-fill" id="hud-tire-bar" style="width: 100%; background: #00e676;"></div>
-            </div>
-          </div>
-        </div>
-
-        <div class="gt-panel minimap-panel">
-          <canvas id="minimap-canvas" width="130" height="105"></canvas>
-        </div>
-
-        <div class="gt-panel tacho-panel">
-          <div class="gear-box">
-            <span style="font-size: 0.6rem; color: #fca5a5; letter-spacing: 1px;">GEAR</span>
-            <span class="gear-val" id="hud-gear">N</span>
-          </div>
-          <div class="speed-block">
-            <div class="speed-val" id="hud-speed">0</div>
-            <div style="font-size: 0.72rem; color: #94a3b8; font-weight: 600;">KM/H</div>
-            <div class="rpm-bar-container">
-              <div id="rpm-bar-fill"></div>
-            </div>
-          </div>
-        </div>
-      </div>
+<div id="hud">
+  <div class="row">
+    <div class="panel box f">
+      <div><div class="l">Position</div><div class="v" id="hp">1<small>/6</small></div></div>
+      <div><div class="l">Lap</div><div class="v" id="hl">1<small>/3</small></div></div>
+      <div><div class="l">Gap</div><div class="v" id="hg" style="font-size:1.1rem">LEADER</div></div>
     </div>
-
-    <!-- ==================== POST-RACE RESULTS ==================== -->
-    <div id="results-overlay">
-      <div class="gt-panel results-card">
-        <div class="results-title" id="res-headline">1ST PLACE — VICTORY!</div>
-        <div style="font-size: 0.9rem; color: #cbd5e1;" id="res-subline">World Touring Car 800 • Sardegna Road Track</div>
-
-        <table class="standings-table">
-          <thead>
-            <tr>
-              <th>Pos</th>
-              <th>Driver / Machine</th>
-              <th>Best Lap</th>
-              <th>Gap</th>
-            </tr>
-          </thead>
-          <tbody id="standings-body"></tbody>
-        </table>
-
-        <div class="reward-banner">
-          <div>
-            <div style="font-size: 0.75rem; color: #fde047; text-transform: uppercase;">Prize Money Awarded</div>
-            <div class="font-race" style="font-size: 1.4rem; font-weight: 700; color: var(--gt-gold);" id="res-prize">+ Cr. 485,000</div>
-          </div>
-          <div style="text-align: right;">
-            <div style="font-size: 0.75rem; color: #94a3b8;">Clean Race Bonus</div>
-            <div class="font-race" style="font-size: 1rem; color: #4ade80;">+50% APPLIED</div>
-          </div>
-        </div>
-
-        <div class="results-actions">
-          <button class="icon-btn" id="res-menu-btn" style="padding: 12px 20px;">Change Car</button>
-          <button class="start-btn" id="res-retry-btn" style="padding: 12px 26px; font-size: 1rem;">Race Again</button>
-        </div>
+    <div class="panel box f">
+      <div><div class="l">Lap time</div><div class="v" id="ht" style="font-size:1.1rem">0:00.000</div></div>
+      <div><div class="l">Best</div><div class="v" id="hb" style="font-size:1.1rem;color:#c084fc">--:--.---</div></div>
+    </div>
+    <div class="acts"><button id="bp">🏁 Box In</button><button id="bx">✕ Exit</button></div>
+  </div>
+  <div id="ctr"><div id="cd" class="f"></div><div id="pill" class="f"></div></div>
+  <div class="panel" id="pit"><div class="f" style="font-size:1.3rem;color:#38bdf8">PIT CREW SERVICING</div>
+    <div class="lb" style="margin:4px 0">Refuelling &amp; fitting fresh tires…</div>
+    <div class="g"><i id="pf" style="width:0;background:linear-gradient(90deg,#00a8ff,#00e676)"></i></div>
+    <button class="btn" id="pr">Release now (splash &amp; go)</button></div>
+  <div>
+    <div id="touch"><div><button id="tl">◀</button><button id="tr">▶</button></div><div><button id="tb" style="background:rgba(230,0,18,.5)">BRK</button><button id="tg" style="background:rgba(0,143,76,.6)">GAS</button></div></div>
+    <div class="row" style="align-items:flex-end;margin-top:8px">
+      <div class="panel" style="padding:10px 14px;min-width:220px">
+        <div class="f" style="font-size:.78rem;color:var(--o);margin-bottom:6px">FUEL MAP <span id="fm">1</span> · <span id="fl">100%</span></div>
+        <div class="g"><i id="fb" style="width:100%;background:#ff9800"></i></div>
+        <div class="f" style="font-size:.78rem;margin-bottom:2px">TIRES <span id="tp">100%</span></div>
+        <div class="g" style="margin-bottom:0"><i id="tb2" style="width:100%;background:#00e676"></i></div></div>
+      <div class="panel f" style="padding:10px 18px;display:flex;gap:16px;align-items:center">
+        <div style="text-align:center"><div class="l">Gear</div><div style="font-size:1.7rem" id="hge">N</div></div>
+        <div style="text-align:right"><div style="font-size:2.3rem;line-height:1" id="hs">0</div><div class="l">km/h</div>
+          <div class="g" style="width:130px;margin:5px 0 0"><i id="rb" style="width:0;background:linear-gradient(90deg,#00a8ff,#00e676 60%,#e60012)"></i></div></div>
       </div>
     </div>
   </div>
+</div>
 
-  <script>
-    // ==================== CAR ROSTER DATA ====================
-    const CARS = [
-      {
-        id: 'mazda787b',
-        name: "Mazda 787B '91",
-        tag: "Gr.1 • #55 Charge",
-        pp: "799.8 PP",
-        desc: "Legendary 4-rotor Le Mans prototype detuned for WTC 800. Unmatched fuel economy & screaming 9,000 RPM rotary.",
-        primaryColor: "#ff5e1a",
-        secondaryColor: "#008f4c",
-        accentColor: "#ffffff",
-        number: "55",
-        maxSpeed: 338,
-        accel: 0.94,
-        handling: 0.92,
-        fuelEff: 0.96,
-        tireLife: 0.90,
-        engineType: "rotary",
-        stats: { speed: 94, accel: 90, handling: 92, fuel: 96 }
-      },
-      {
-        id: 'gtrgt3',
-        name: "Nissan GT-R NISMO GT3 '18",
-        tag: "Gr.3 • #23 Motul",
-        pp: "782.4 PP",
-        desc: "Twin-turbo V6 monster with blistering corner-exit traction and rock-solid stability over Sardegna's heavy kerbs.",
-        primaryColor: "#2b303a",
-        secondaryColor: "#e60012",
-        accentColor: "#f8fafc",
-        number: "23",
-        maxSpeed: 324,
-        accel: 0.96,
-        handling: 0.87,
-        fuelEff: 0.78,
-        tireLife: 0.85,
-        engineType: "v6",
-        stats: { speed: 88, accel: 95, handling: 86, fuel: 76 }
-      },
-      {
-        id: 'porsche911',
-        name: "Porsche 911 RSR (991) '17",
-        tag: "Gr.3 • #911 Weissach",
-        pp: "786.0 PP",
-        desc: "Mid-engine flat-six precision. Razor-sharp turn-in and gentle tire wear allow late braking into hairpin apexes.",
-        primaryColor: "#f1f5f9",
-        secondaryColor: "#e60012",
-        accentColor: "#1e293b",
-        number: "911",
-        maxSpeed: 320,
-        accel: 0.90,
-        handling: 0.97,
-        fuelEff: 0.86,
-        tireLife: 0.95,
-        engineType: "flat6",
-        stats: { speed: 85, accel: 88, handling: 97, fuel: 86 }
-      }
-    ];
+<div id="res"><div class="panel">
+  <div class="f" id="rh" style="font-size:1.8rem;color:var(--g);text-transform:uppercase"></div>
+  <div class="lb" id="rs"></div>
+  <table><thead><tr><th>Pos</th><th>Driver / Machine</th><th>Gap</th></tr></thead><tbody id="rb2"></tbody></table>
+  <div class="pz"><div><div class="l">Prize money</div><div class="f" id="rp" style="font-size:1.3rem;color:var(--g)"></div></div>
+    <div class="f" id="rbn" style="text-align:right"></div></div>
+  <div style="display:flex;justify-content:flex-end;gap:10px"><button class="btn" id="rm">Change Car</button><button class="go f" id="rr" style="padding:10px 24px;font-size:1rem">Race Again</button></div>
+</div></div>
 
-    const AI_DRIVERS = [
-      { name: "R. Kokubun • Mazda RX-Vision GT3", color1: "#d90429", color2: "#111827", number: "7", skill: 0.955 },
-      { name: "I. Fraga • Supra GT500 '97", color1: "#ffffff", color2: "#e60012", number: "36", skill: 0.935 },
-      { name: "V. Gallo • NSX Gr.3", color1: "#0284c7", color2: "#facc15", number: "16", skill: 0.915 },
-      { name: "M. Hizal • AMG GT3 '20", color1: "#94a3b8", color2: "#00e676", number: "4", skill: 0.895 },
-      { name: "N. Rubilar • Viper SRT GT3-R", color1: "#1d4ed8", color2: "#ffffff", number: "91", skill: 0.875 }
-    ];
+<script>
+const $=id=>document.getElementById(id), cv=$('c'), g=cv.getContext('2d');
+const K={l:0,r:0,u:0,d:0};
+const SEG=200,ROAD=2000,CAMH=1000,DEPTH=1/Math.tan(50*Math.PI/180),DRAW=180,TOPREF=13200;
 
-    // ==================== WEB AUDIO ENGINE SYNTHESIZER ====================
-    class EngineAudio {
-      constructor() {
-        this.ctx = null;
-        this.muted = false;
-        this.running = false;
-        this.osc1 = null;
-        this.osc2 = null;
-        this.subOsc = null;
-        this.gainNode = null;
-        this.filter = null;
-        this.screechGain = null;
-      }
+// ---------- Cars (id, name, class, PP, price, color1, color2, number, top km/h, accel, handling, fuel eff, tire life)
+const CARS=[
+['porsche911',"Porsche 911 RSR ’17",'Gr.3',786,450000,'#f1f5f9','#e60012','911',322,.90,.97,.88,.95],
+['gtrgt3',"Nissan GT-R NISMO GT3 ’18",'Gr.3',782,600000,'#262b34','#e60012','23',326,.96,.87,.80,.86],
+['supra',"Toyota GR Supra Racing Concept ’18",'Gr.3',784,550000,'#ffffff','#e60012','90',325,.93,.92,.85,.89],
+['bmwm6',"BMW M6 GT3 ’16",'Gr.3',785,680000,'#0f172a','#00a8ff','34',328,.92,.89,.91,.92],
+['f458',"Ferrari 458 Italia GT3 ’13",'Gr.3',788,750000,'#dc2626','#facc15','51',329,.93,.96,.84,.90],
+['amg',"Mercedes-AMG GT3 ’20",'Gr.3',789,850000,'#94a3b8','#00e676','4',330,.95,.91,.82,.89],
+['huracan',"Lamborghini Huracán GT3 ’15",'Gr.3',787,920000,'#16a34a','#111827','63',331,.96,.93,.81,.87],
+['mclaren',"McLaren 650S GT3 ’15",'Gr.3',790,980000,'#f97316','#0f172a','59',333,.94,.97,.86,.91],
+['nsx',"Honda NSX Concept-GT ’16",'Gr.2',794,1350000,'#1d4ed8','#38bdf8','100',342,.96,.98,.89,.92],
+['gtr500',"Nissan GT-R NISMO GT500 ’16",'Gr.2',795,1500000,'#dc2626','#18181b','1',346,.98,.96,.87,.90],
+['lexus',"Lexus RC F GT500 ’16",'Gr.2',796,1650000,'#f97316','#1d4ed8','36',348,.97,.99,.90,.93],
+['mazda787',"Mazda 787B ’91",'Gr.1',799,1850000,'#ff5e1a','#008f4c','55',352,.95,.94,.99,.92],
+['p962',"Porsche 962 C ’88",'Gr.1',799,2100000,'#f8fafc','#1e3a8a','17',356,.97,.96,.94,.95],
+['r92',"Nissan R92CP ’92",'Gr.1',799,2450000,'#1d4ed8','#e60012','24',366,1,.91,.88,.89],
+['c9',"Sauber Mercedes C9 ’89",'Gr.1',800,2950000,'#cbd5e1','#0f172a','63',370,.99,.95,.94,.94],
+['lm55',"Mazda LM55 Vision GT",'Gr.1',800,3600000,'#18181b','#ff5e1a','55',374,1,1,.97,.97]
+].map(a=>({id:a[0],name:a[1],cat:a[2],pp:a[3],price:a[4],c1:a[5],c2:a[6],num:a[7],top:a[8],acc:a[9],hnd:a[10],fuel:a[11],tire:a[12]}));
+const RIVALS=[["R. Kokubun · Mazda RX-Vision GT3",'#d90429','#111827','7',.965],["I. Fraga · Supra GT500",'#ffffff','#e60012','36',.945],
+["V. Gallo · NSX Gr.3",'#0284c7','#facc15','16',.925],["M. Hizal · AMG GT3 ’20",'#94a3b8','#00e676','4',.905],["N. Rubilar · Viper GT3-R",'#1d4ed8','#ffffff','91',.885]];
 
-      init() {
-        if (this.ctx) return;
-        const AudioCtx = window.AudioContext || window.webkitAudioContext;
-        if (!AudioCtx) return;
-        this.ctx = new AudioCtx();
+// ---------- Save data
+let credits=1250000, owned=new Set(['porsche911','gtrgt3']), sel=0, filter='ALL', laps=3;
+try{const c=localStorage.getItem('gt7c');if(c&&+c)credits=+c;JSON.parse(localStorage.getItem('gt7o')||'[]').forEach(x=>owned.add(x))}catch(e){}
+const save=()=>{try{localStorage.setItem('gt7c',credits);localStorage.setItem('gt7o',JSON.stringify([...owned]))}catch(e){}};
+const cr=n=>'Cr. '+Math.round(n).toLocaleString();
+const fmt=t=>!isFinite(t)||t<=0?'--:--.---':Math.floor(t/60)+':'+(t%60<10?'0':'')+(t%60).toFixed(3);
+function beep(f=660,d=.12){try{beep.a=beep.a||new (window.AudioContext||window.webkitAudioContext)();const a=beep.a,o=a.createOscillator(),v=a.createGain();o.frequency.value=f;v.gain.setValueAtTime(.07,a.currentTime);v.gain.exponentialRampToValueAtTime(.001,a.currentTime+d);o.connect(v);v.connect(a.destination);o.start();o.stop(a.currentTime+d)}catch(e){}}
 
-        this.osc1 = this.ctx.createOscillator();
-        this.osc2 = this.ctx.createOscillator();
-        this.subOsc = this.ctx.createOscillator();
+// ---------- Car preview (menu)
+const svgCar=c=>`<svg viewBox="0 0 260 90"><ellipse cx="130" cy="80" rx="105" ry="7" fill="rgba(0,0,0,.6)"/><rect x="14" y="26" width="34" height="6" fill="${c.c2}"/><path d="M24 68 L30 46 L68 42 Q104 24 152 25 L186 43 L236 52 Q246 58 242 68Z" fill="${c.c1}" stroke="rgba(255,255,255,.3)"/><path d="M76 42 L106 27 L148 27 L176 43Z" fill="#1e293b"/><path d="M48 66 L94 47 L166 47 L195 66Z" fill="${c.c2}"/><rect x="112" y="48" width="32" height="16" rx="3" fill="#fff"/><text x="128" y="60" text-anchor="middle" font-size="11" font-weight="700" fill="#0f172a">${c.num}</text><circle cx="68" cy="68" r="15" fill="#090b10" stroke="#334155" stroke-width="2"/><circle cx="196" cy="68" r="15" fill="#090b10" stroke="#334155" stroke-width="2"/><circle cx="68" cy="68" r="6" fill="${c.c2}"/><circle cx="196" cy="68" r="6" fill="${c.c2}"/></svg>`;
 
-        this.osc1.type = 'sawtooth';
-        this.osc2.type = 'triangle';
-        this.subOsc.type = 'sine';
+function toast(m,col='#4ade80'){const t=$('toast');t.textContent=m;t.style.color=col;t.style.opacity=1;clearTimeout(t.t);t.t=setTimeout(()=>t.style.opacity=0,2600)}
+function menu(){
+  $('cr').textContent=cr(credits);
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.f===filter));
+  const grid=$('grid');grid.innerHTML='';
+  CARS.forEach((c,i)=>{
+    if(filter==='OWN'?!owned.has(c.id):(filter!=='ALL'&&c.cat!==filter))return;
+    const own=owned.has(c.id),can=credits>=c.price;
+    const d=document.createElement('div');d.className='card panel'+(i===sel?' sel':'')+(own?'':' lock');
+    const bar=(l,v)=>`<div class="lb">${l}</div><div class="bar"><i style="width:${v}%"></i></div>`;
+    d.innerHTML=`<div class="top"><span>${c.cat}</span><b class="f">${c.pp}.0 PP</b></div>${svgCar(c)}<div class="nm f">${c.name}</div>
+      ${bar('Top speed '+c.top+' km/h',(c.top-250)/1.24)}${bar('Acceleration',c.acc*100)}${bar('Cornering',c.hnd*100)}${bar('Fuel economy',c.fuel*100)}
+      <div class="tag ${own?'own':can?'buy':'no'} f">${own?(i===sel?'✓ SELECTED':'OWNED — CLICK TO SELECT'):'🔒 BUY FOR '+cr(c.price)}</div>`;
+    d.onclick=()=>{
+      if(own){sel=i;beep(780,.08)}
+      else if(can){credits-=c.price;owned.add(c.id);sel=i;save();beep(660,.1);setTimeout(()=>beep(990,.18),90);toast('★ PURCHASED '+c.name.toUpperCase())}
+      else{beep(210,.16);toast('NEED '+cr(c.price-credits)+' MORE','#f87171');return}
+      menu();
+    };
+    grid.appendChild(d);
+  });
+}
 
-        this.filter = this.ctx.createBiquadFilter();
-        this.filter.type = 'lowpass';
-        this.filter.frequency.value = 600;
+// ---------- Track
+let segs=[],len=0;
+const lastY=()=>segs.length?segs[segs.length-1].p2.y:0;
+const addSeg=(curve,y)=>{const n=segs.length;segs.push({i:n,p1:{y:lastY(),z:n*SEG},p2:{y,z:(n+1)*SEG},curve,dark:Math.floor(n/3)%2,sp:[],cars:[]})};
+const eio=(a,b,p)=>a+(b-a)*(-Math.cos(p*Math.PI)/2+.5), ei=(a,b,p)=>a+(b-a)*p*p;
+function road(e,h,l,curve,y){const sy=lastY(),ey=sy+y*SEG,t=e+h+l;
+  for(let n=0;n<e;n++)addSeg(ei(0,curve,n/e),eio(sy,ey,n/t));
+  for(let n=0;n<h;n++)addSeg(curve,eio(sy,ey,(e+n)/t));
+  for(let n=0;n<l;n++)addSeg(eio(curve,0,n/l),eio(sy,ey,(e+h+n)/t))}
+function build(){
+  segs=[];
+  road(25,110,25,0,0);road(20,45,25,3.6,-15);road(15,35,15,-1.8,-10);road(20,50,20,0,20);
+  road(25,45,25,-4.4,15);road(15,45,15,0,-25);road(20,50,20,3.2,0);road(18,40,18,-3.5,10);road(18,40,18,3.5,-10);
+  road(20,95,20,0,18);road(22,48,22,-3.9,-18);road(20,40,20,4.2,15);
+  road(25,65,20,0,-lastY()/SEG);
+  len=segs.length*SEG;
+  segs.forEach((s,n)=>{if(n%6===0&&n>40)s.sp.push({o:(n%12===0?-1:1)*(1.5+(n%5)*.25)})});
+}
+const segAt=z=>segs[Math.floor((((z%len)+len)%len)/SEG)%segs.length];
 
-        this.gainNode = this.ctx.createGain();
-        this.gainNode.gain.value = 0.0;
+// ---------- Race state
+const S={mode:'menu',cd:0,lastCd:9,time:0,lapT:0,best:Infinity,lap:1,pos:0,tz:0,x:0,speed:0,rpm:.2,gear:1,steer:0,fuel:100,map:1,tire:100,arm:false,clean:true,slip:false,ai:[],pit:0,lastBrake:false};
 
-        this.osc1.connect(this.filter);
-        this.osc2.connect(this.filter);
-        this.subOsc.connect(this.filter);
-        this.filter.connect(this.gainNode);
-        this.gainNode.connect(this.ctx.destination);
+function setup(){
+  build();
+  Object.assign(S,{mode:'count',cd:3.5,lastCd:9,time:0,lapT:0,best:Infinity,lap:1,pos:5*SEG,x:-.35,speed:0,steer:0,fuel:100,map:1,tire:100,arm:false,clean:true,slip:false,pit:0});
+  S.tz=S.pos;
+  S.ai=RIVALS.map((r,i)=>{const z=(14+(5-i)*5)*SEG,x=i%2?.36:-.36;
+    return{name:r[0],c1:r[1],c2:r[2],num:r[3],skill:r[4],z,tz:z,x,tx:x,speed:0,max:10500+r[4]*1900}});
+  $('menu').style.display='none';$('res').style.display='none';$('pit').style.display='none';$('hud').style.display='flex';
+  $('bp').classList.remove('arm');$('bp').textContent='🏁 Box In';$('pill').style.opacity=0;
+}
+function pill(t,bg,ms){const p=$('pill');p.textContent=t;p.style.background=bg;p.style.opacity=1;clearTimeout(pill.t);if(ms)pill.t=setTimeout(()=>p.style.opacity=0,ms)}
 
-        const bufferSize = this.ctx.sampleRate * 1.5;
-        const noiseBuffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
-        const output = noiseBuffer.getChannelData(0);
-        for (let i = 0; i < bufferSize; i++) {
-          output[i] = Math.random() * 2 - 1;
-        }
-        const whiteNoise = this.ctx.createBufferSource();
-        whiteNoise.buffer = noiseBuffer;
-        whiteNoise.loop = true;
+function updateAI(dt){
+  S.ai.forEach(a=>{
+    const sg=segAt(a.z),band=Math.max(.93,Math.min(1.07,1+(S.tz-a.tz)/(len*1.6)));
+    const tgt=a.max*(1-Math.min(.24,Math.abs(sg.curve)*.045))*band;
+    a.speed+=(tgt-a.speed)*dt*2;
+    a.z+=a.speed*dt;a.tz+=a.speed*dt;if(a.z>=len)a.z-=len;
+    if(Math.random()<.012)a.tx=Math.random()*1.3-.65;
+    a.x+=(a.tx-a.x)*dt*1.4;
+  });
+}
 
-        const bandpass = this.ctx.createBiquadFilter();
-        bandpass.type = 'bandpass';
-        bandpass.frequency.value = 1100;
-        bandpass.Q.value = 3.5;
+function update(dt){
+  if(S.mode==='menu'||S.mode==='done')return;
+  const car=CARS[sel];
+  if(S.mode==='count'){
+    S.cd-=dt;const n=Math.ceil(S.cd-.5),el=$('cd');
+    if(n>0){el.textContent=n;if(n<S.lastCd){S.lastCd=n;beep(440,.14)}}
+    else if(S.cd>0){el.textContent='GO!';if(S.lastCd!==0){S.lastCd=0;beep(880,.3)}}
+    else{el.textContent='';S.mode='race'}
+    S.rpm+=((K.u?.85:.22)-S.rpm)*dt*8;return;
+  }
+  S.time+=dt;S.lapT+=dt;
+  if(S.mode==='pit'){
+    updateAI(dt);
+    S.fuel=Math.min(100,S.fuel+dt*32);S.tire=Math.min(100,S.tire+dt*36);
+    $('pf').style.width=(S.fuel+S.tire)/2+'%';
+    if(S.fuel>=99.9&&S.tire>=99.9)release();
+    hud();return;
+  }
+  const pm=1-(S.map-1)*.04,bm=1-(S.map-1)*.12,empty=S.fuel<=.05?.42:1;
+  const top=car.top/340*12000*pm*empty+(S.slip?800:0);
+  const acc=top/(7-car.acc*3)*1;
+  if(K.u)S.speed+=acc*dt;else if(K.d)S.speed-=11000*dt;else S.speed-=2000*dt;
+  const off=Math.abs(S.x)>1.05;
+  if(off&&S.speed>top*.45)S.speed-=6000*dt;
+  S.speed=Math.max(0,Math.min(top,S.speed));
+  const sp=S.speed/TOPREF,grip=.7+S.tire/100*.3,sg=segAt(S.pos);
+  S.steer+=((K.r-K.l)-S.steer)*dt*10;
+  if(S.speed>80){
+    S.x+=S.steer*dt*2*sp*(.8+car.hnd*.45)*grip*1.15;
+    S.x-=dt*2*sp*sp*sg.curve*.26/grip;
+  }
+  if(Math.abs(S.x)>1.9){S.x=Math.sign(S.x)*1.9;S.speed*=.95}
+  S.gear=Math.max(1,Math.min(6,Math.floor(sp*6)+1));
+  const gl=(S.gear-1)/6,gh=S.gear/6;
+  S.rpm+=(Math.min(1,Math.max(.15,S.speed<150?.2:.34+(sp-gl)/(gh-gl)*.64))-S.rpm)*dt*12;
+  if(S.speed>200){
+    S.fuel=Math.max(0,S.fuel-(.9/car.fuel)*bm*(K.u?1:.25)*dt);
+    S.tire=Math.max(5,S.tire-(.5/car.tire)*sp*(1+Math.abs(sg.curve)*.2)*dt);
+  }
+  const dz=S.speed*dt;S.pos+=dz;S.tz+=dz;
+  if(S.pos>=len){
+    S.pos-=len;S.best=Math.min(S.best,S.lapT);S.lapT=0;
+    if(S.lap>=laps){finish();return}
+    S.lap++;beep(740,.15);
+    if(S.arm||S.fuel<12){S.mode='pit';S.speed=0;S.arm=false;$('bp').classList.remove('arm');$('bp').textContent='🏁 Box In';$('pit').style.display='block';pill('',0,1);$('pill').style.opacity=0;beep(520,.15)}
+    else pill(S.lap===laps?'FINAL LAP!':'LAP '+S.lap+' / '+laps,S.lap===laps?'rgba(230,0,18,.9)':'rgba(15,23,42,.9)',2200);
+  }
+  updateAI(dt);
+  // slipstream & contact
+  S.slip=false;
+  for(const a of S.ai){
+    let d=a.z-S.pos;if(d<-len/2)d+=len;if(d>len/2)d-=len;
+    const dx=Math.abs(a.x-S.x);
+    if(d>180&&d<3200&&dx<.34&&S.speed>5500)S.slip=true;
+    if(Math.abs(d)<175&&dx<.28){
+      if(d>0&&S.speed>a.speed){S.speed=Math.max(a.speed*.82,S.speed*.8);S.clean=false;beep(160,.1)}
+      if(S.x<a.x){S.x-=.05;a.x+=.04}else{S.x+=.05;a.x-=.04}
+    }
+  }
+  if(S.fuel<=18&&S.fuel>0)pill('⚠ LOW FUEL — PRESS P TO BOX','rgba(217,119,6,.92)');
+  else if(S.arm)pill('BOX ARMED — PIT AT END OF LAP','rgba(2,132,199,.92)');
+  else if(S.slip)pill('SLIPSTREAM BOOST','rgba(0,168,255,.88)');
+  else $('pill').style.opacity=0;
+  hud();
+}
+function release(){
+  $('pit').style.display='none';S.mode='race';S.speed=5600;S.x=.3;S.fuel=100;S.tire=100;
+  K.u=1;setTimeout(()=>K.u=0,200);beep(880,.14);pill('PIT COMPLETE — GO!','rgba(0,230,118,.9)',2200);
+}
 
-        this.screechGain = this.ctx.createGain();
-        this.screechGain.gain.value = 0;
+// ---------- Rendering
+function proj(p,cx,cy,cz,w,h){const z=p.z-cz;p.cz=z;p.sc=DEPTH/Math.max(z,1);p.sx=Math.round(w/2+p.sc*(-cx)*w/2);p.sy=Math.round(h/2-p.sc*(p.y-cy)*h/2);p.sw=Math.round(p.sc*ROAD*w/2)}
+function poly(a,b,c,d,e,f,h,i,col){g.fillStyle=col;g.beginPath();g.moveTo(a,b);g.lineTo(c,d);g.lineTo(e,f);g.lineTo(h,i);g.closePath();g.fill()}
+function drawSeg(s,w){
+  const a=s.p1,b=s.p2,r1=a.sw*.14,r2=b.sw*.14,rc=s.dark?'#e60012':'#f8fafc';
+  g.fillStyle=s.dark?'#3a4a28':'#43552f';g.fillRect(0,b.sy,w,a.sy-b.sy);
+  poly(a.sx-a.sw-r1,a.sy,a.sx-a.sw,a.sy,b.sx-b.sw,b.sy,b.sx-b.sw-r2,b.sy,rc);
+  poly(a.sx+a.sw,a.sy,a.sx+a.sw+r1,a.sy,b.sx+b.sw+r2,b.sy,b.sx+b.sw,b.sy,rc);
+  poly(a.sx-a.sw,a.sy,a.sx+a.sw,a.sy,b.sx+b.sw,b.sy,b.sx-b.sw,b.sy,s.dark?'#272b33':'#2e333d');
+  if(s.i<4){for(let c=0;c<12;c++){const k=(c+s.i)%2?'#f8fafc':'#0f172a';
+    poly(a.sx-a.sw+c*a.sw/6,a.sy,a.sx-a.sw+(c+1)*a.sw/6,a.sy,b.sx-b.sw+(c+1)*b.sw/6,b.sy,b.sx-b.sw+c*b.sw/6,b.sy,k)}}
+  else if(s.dark){for(let k=1;k<3;k++){const f=-1+2*k/3,l1=a.sw*.02,l2=b.sw*.02,x1=a.sx+a.sw*f,x2=b.sx+b.sw*f;
+    poly(x1-l1,a.sy,x1+l1,a.sy,x2+l2,b.sy,x2-l2,b.sy,'#cbd5e1')}}
+}
+function drawCar(x,y,s,c,steer,brake){
+  g.save();g.translate(x,y);g.scale(s,s);g.rotate(steer*.1);
+  g.fillStyle='rgba(0,0,0,.5)';g.beginPath();g.ellipse(0,26,92,14,0,0,7);g.fill();
+  g.fillStyle='#0c0e12';g.fillRect(-90,-4,27,34);g.fillRect(63,-4,27,34);
+  g.fillStyle='#262b36';g.fillRect(-84,-2,11,30);g.fillRect(73,-2,11,30);
+  const b=g.createLinearGradient(0,-26,0,16);b.addColorStop(0,c.c1);b.addColorStop(1,'#0f172a');g.fillStyle=b;
+  g.beginPath();g.moveTo(-82,16);g.lineTo(-78,-14);g.quadraticCurveTo(-55,-24,-36,-24);g.lineTo(36,-24);g.quadraticCurveTo(55,-24,78,-14);g.lineTo(82,16);g.fill();
+  g.fillStyle=c.c2;g.fillRect(-80,-4,30,18);g.fillRect(50,-4,30,18);
+  g.fillStyle='#0b1120';g.beginPath();g.moveTo(-44,-22);g.lineTo(-30,-44);g.lineTo(30,-44);g.lineTo(44,-22);g.fill();
+  g.fillStyle='#0f172a';g.fillRect(-34,-48,5,26);g.fillRect(29,-48,5,26);
+  g.fillStyle=c.c2;g.fillRect(-84,-56,168,8);
+  g.fillStyle=brake?'#ff1e27':'#991b1b';g.fillRect(-72,-10,26,7);g.fillRect(46,-10,26,7);
+  g.fillStyle='#fff';g.fillRect(-16,-15,32,17);
+  g.fillStyle='#0f172a';g.font='bold 12px sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText(c.num,0,-6);
+  g.restore();
+}
+function sky(w,h){
+  const sg=g.createLinearGradient(0,0,0,h*.55);
+  [[0,'#090d1a'],[.3,'#2d163d'],[.62,'#a83238'],[.88,'#f07838'],[1,'#ffd175']].forEach(s=>sg.addColorStop(s[0],s[1]));
+  g.fillStyle=sg;g.fillRect(0,0,w,h*.56);g.fillStyle='#43552f';g.fillRect(0,h*.5,w,h*.5);
+  const sx=w*.5-segAt(S.pos).curve*18,sy=h*.42,gl=g.createRadialGradient(sx,sy,8,sx,sy,220);
+  gl.addColorStop(0,'rgba(255,252,225,1)');gl.addColorStop(.2,'rgba(255,205,105,.7)');gl.addColorStop(1,'rgba(255,110,40,0)');
+  g.fillStyle=gl;g.beginPath();g.arc(sx,sy,220,0,7);g.fill();
+  g.fillStyle='#1b1622';g.beginPath();g.moveTo(0,h*.52);
+  const o=S.pos/SEG*4+segAt(S.pos).curve*40;
+  for(let x=0;x<=w+30;x+=30){const t=(x+o)*.006;g.lineTo(x,h*.5-8+Math.cos(t)*20+Math.sin(t*1.9)*12)}
+  g.lineTo(w,h*.52);g.fill();
+}
+function render(){
+  const w=cv.width,h=cv.height;g.clearRect(0,0,w,h);
+  if(!segs.length)return;
+  sky(w,h);
+  const base=segAt(S.pos),bp=(S.pos%SEG)/SEG,py=base.p1.y+(base.p2.y-base.p1.y)*bp;
+  let x=0,dx=-base.curve*bp,maxy=h;
+  segs.forEach(s=>s.cars.length=0);
+  S.ai.forEach(a=>segAt(a.z).cars.push(a));
+  for(let n=0;n<DRAW;n++){
+    const s=segs[(base.i+n)%segs.length],cz=S.pos-(s.i<base.i?len:0);
+    proj(s.p1,S.x*ROAD-x,py+CAMH,cz,w,h);proj(s.p2,S.x*ROAD-x-dx,py+CAMH,cz,w,h);
+    x+=dx;dx+=s.curve;s.clip=maxy;
+    if(s.p1.cz<=DEPTH||s.p2.sy>=s.p1.sy||s.p2.sy>=maxy)continue;
+    drawSeg(s,w);maxy=s.p1.sy;
+  }
+  for(let n=DRAW-1;n>0;n--){
+    const s=segs[(base.i+n)%segs.length];
+    if(s.p1.sw<2)continue;
+    for(const sp of s.sp){
+      const tx=s.p1.sx+s.p1.sw*sp.o,ty=s.p1.sy,th=s.p1.sw*.34;
+      if(ty>s.clip+th)continue;
+      g.fillStyle='#3f2e21';g.fillRect(tx-th*.06,ty-th*.3,th*.12,th*.3);
+      g.fillStyle='#1f3d24';g.beginPath();g.ellipse(tx,ty-th*.65,th*.22,th*.4,0,0,7);g.fill();
+    }
+    for(const a of s.cars){
+      const pc=(a.z%SEG)/SEG,sw=s.p1.sw+(s.p2.sw-s.p1.sw)*pc,sx=s.p1.sx+(s.p2.sx-s.p1.sx)*pc,sy=s.p1.sy+(s.p2.sy-s.p1.sy)*pc;
+      const sc=sw*.0034;
+      if(sc>.02)drawCar(sx+sw*a.x,sy-26*sc,sc,a,0,Math.abs(s.curve)>3.2);
+    }
+  }
+  if(S.speed>10000&&S.mode==='race'){
+    g.strokeStyle=S.slip?'rgba(125,211,252,.4)':'rgba(255,255,255,.18)';g.lineWidth=2;
+    for(let k=0;k<10;k++){const sx=w*.14+((k*97+performance.now()*.35)%(w*.72)),sy=h*.32+((k*53+performance.now()*1.05)%(h*.58));
+      g.beginPath();g.moveTo(sx,sy);g.lineTo(sx+(sx-w/2)*.2,sy+60);g.stroke()}
+  }
+  if(S.mode!=='menu'&&S.mode!=='done'){
+    const sc=Math.max(.8,Math.min(1.4,w/820)),bump=(Math.abs(S.x)>.96&&S.speed>1000)?Math.sin(performance.now()*.06)*3:0;
+    drawCar(w/2,h*.84+bump,sc,CARS[sel],S.steer,K.d||S.mode==='count');
+  }
+}
 
-        whiteNoise.connect(bandpass);
-        bandpass.connect(this.screechGain);
-        this.screechGain.connect(this.ctx.destination);
+// ---------- HUD & results
+function standings(){
+  return [{me:1,name:'YOU · '+CARS[sel].name,z:S.tz},...S.ai.map(a=>({me:0,name:a.name,z:a.tz}))].sort((a,b)=>b.z-a.z);
+}
+function hud(){
+  const st=standings(),rank=st.findIndex(r=>r.me)+1;
+  $('hp').innerHTML=rank+'<small>/6</small>';$('hl').innerHTML=S.lap+'<small>/'+laps+'</small>';
+  const gp=$('hg');
+  if(rank===1){gp.textContent='LEADER';gp.style.color='#4ade80'}
+  else{gp.textContent='+'+Math.max(.05,(st[0].z-S.tz)/9500).toFixed(2)+'s';gp.style.color='#38bdf8'}
+  $('ht').textContent=fmt(S.lapT);$('hb').textContent=fmt(S.best);
+  $('hs').textContent=Math.round(S.speed/12000*340);$('hge').textContent=S.speed<80?'N':S.gear;
+  $('rb').style.width=Math.round(S.rpm*100)+'%';
+  $('fm').textContent=S.map;$('fl').textContent=Math.round(S.fuel)+'%';
+  $('fb').style.width=S.fuel+'%';$('fb').style.background=S.fuel<20?'#ef4444':'#ff9800';
+  $('tp').textContent=Math.round(S.tire)+'%';$('tb2').style.width=S.tire+'%';$('tb2').style.background=S.tire<35?'#f59e0b':'#00e676';
+}
+function finish(){
+  S.mode='done';beep(880,.35);
+  const st=standings(),rank=st.findIndex(r=>r.me)+1;
+  $('rh').textContent=['1ST PLACE — VICTORY!','2ND PLACE — PODIUM!','3RD PLACE — PODIUM!'][rank-1]||rank+'TH PLACE — RACE COMPLETE';
+  $('rs').textContent='World Touring Car 800 · Sardegna Road Track ('+laps+' laps)';
+  $('rb2').innerHTML=st.map((r,i)=>`<tr class="${r.me?'me':''}"><td class="f">${i+1}</td><td>${r.name}</td><td class="f">${i?'+'+Math.max(.12,(st[0].z-r.z)/9500).toFixed(3)+'s':'WINNER'}</td></tr>`).join('');
+  const base=[485000,300000,195000,130000,90000,65000][rank-1]*laps/3,prize=Math.round(S.clean?base*1.5:base);
+  credits+=prize;save();
+  $('rp').textContent='+ '+cr(prize);
+  $('rbn').textContent=S.clean?'Clean race bonus +50%':'Contact — no bonus';$('rbn').style.color=S.clean?'#4ade80':'#f87171';
+  $('hud').style.display='none';$('pit').style.display='none';$('res').style.display='flex';
+}
+function toMenu(){S.mode='menu';$('hud').style.display='none';$('pit').style.display='none';$('res').style.display='none';$('menu').style.display='flex';menu()}
 
-        this.osc1.start();
-        this.osc2.start();
-        this.subOsc.start();
-        whiteNoise.start();
-        this.running = true;
-      }
+// ---------- Controls
+function arm(){
+  if(S.mode!=='race')return;S.arm=!S.arm;
+  $('bp').classList.toggle('arm',S.arm);$('bp').textContent=S.arm?'🏁 Box Armed':'🏁 Box In';beep(S.arm?760:480,.09);
+}
+const km={arrowleft:'l',a:'l',arrowright:'r',d:'r',arrowup:'u',w:'u',arrowdown:'d',s:'d'};
+addEventListener('keydown',e=>{const k=e.key.toLowerCase();if(km[k])K[km[k]]=1;if(k==='p')arm();if(/^[1-6]$/.test(k))S.map=+k;if(e.code==='Space'&&S.mode==='race')e.preventDefault()});
+addEventListener('keyup',e=>{const k=e.key.toLowerCase();if(km[k])K[km[k]]=0});
+[['tl','l'],['tr','r'],['tb','d'],['tg','u']].forEach(([id,k])=>{
+  const b=$(id),on=e=>{e.preventDefault();K[k]=1},off=e=>{e.preventDefault();K[k]=0};
+  b.addEventListener('touchstart',on,{passive:false});b.addEventListener('touchend',off,{passive:false});b.addEventListener('touchcancel',off,{passive:false});
+  b.addEventListener('mousedown',on);b.addEventListener('mouseup',off);b.addEventListener('mouseleave',off);
+});
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{filter=t.dataset.f;beep(660,.06);menu()});
+document.querySelectorAll('.btn[data-l]').forEach(b=>b.onclick=()=>{laps=+b.dataset.l;document.querySelectorAll('.btn[data-l]').forEach(x=>x.classList.toggle('on',x===b));beep(640,.07)});
+$('start').onclick=setup;$('rr').onclick=setup;$('rm').onclick=toMenu;$('bx').onclick=toMenu;
+$('bp').onclick=arm;$('pr').onclick=()=>{if(S.mode==='pit')release()};
 
-      update(rpmRatio, throttle, isSliding, onKerb, engineType) {
-        if (!this.running || !this.ctx) return;
-        if (this.muted) {
-          this.gainNode.gain.setTargetAtTime(0, this.ctx.currentTime, 0.05);
-          this.screechGain.gain.setTargetAtTime(0, this.ctx.currentTime, 0.05);
-          return;
-        }
-
-        if (this.ctx.state === 'suspended') {
-          this.ctx.resume();
-        }
-
-        const now = this.ctx.currentTime;
-        const baseFreq = engineType === 'rotary'
-          ? 95 + rpmRatio * 290
-          : engineType === 'flat6'
-          ? 75 + rpmRatio * 230
-          : 65 + rpmRatio * 205;
-
-        const harmonicMult = engineType === 'rotary' ? 2.0 : 1.5;
-
-        this.osc1.frequency.setTargetAtTime(baseFreq, now, 0.03);
-        this.osc2.frequency.setTargetAtTime(baseFreq * harmonicMult, now, 0.03);
-        this.subOsc.frequency.setTargetAtTime(baseFreq * 0.5, now, 0.03);
-
-        this.filter.frequency.setTargetAtTime(350 + rpmRatio * 1900 + throttle * 500, now, 0.04);
-        const targetGain = 0.045 + throttle * 0.045 + rpmRatio * 0.03;
-        this.gainNode.gain.setTargetAtTime(targetGain, now, 0.05);
-
-        const screechVol = isSliding ? 0.06 : onKerb ? 0.035 : 0;
-        this.screechGain.gain.setTargetAtTime(screechVol, now, 0.04);
-      }
-
-      stop() {
-        if (!this.running || !this.ctx) return;
-        this.gainNode.gain.setTargetAtTime(0, this.ctx.currentTime, 0.05);
-        this.screechGain.gain.setTargetAtTime(
+// ---------- Loop
+function resize(){cv.width=innerWidth;cv.height=innerHeight}
+addEventListener('resize',resize);resize();menu();build();
+let last=0;
+(function loop(t){const dt=Math.min(.05,(t-(last||t))/1000);last=t;update(dt);render();requestAnimationFrame(loop)})(0);
+</script></body></html>
