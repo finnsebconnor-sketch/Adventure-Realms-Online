@@ -176,13 +176,19 @@
     }
 
     .car-preview-box {
-      height: 74px;
+      height: 78px;
       margin: 8px 0 12px;
       border-radius: 8px;
-      background: radial-gradient(circle at center, rgba(255,255,255,0.08), rgba(0,0,0,0.4));
+      background: radial-gradient(circle at center, rgba(255,255,255,0.09), rgba(0,0,0,0.45));
       display: flex;
       align-items: center;
       justify-content: center;
+      overflow: hidden;
+    }
+
+    .car-preview-canvas {
+      width: 190px;
+      height: 74px;
     }
 
     .car-name {
@@ -260,6 +266,11 @@
       cursor: pointer;
       font-family: 'Chakra Petch', sans-serif;
       font-weight: 700;
+      transition: background 0.15s ease;
+    }
+
+    .lap-btn:hover {
+      background: rgba(255, 255, 255, 0.22);
     }
 
     .lap-btn.active {
@@ -318,6 +329,7 @@
       justify-content: space-between;
       align-items: flex-start;
       gap: 10px;
+      flex-wrap: wrap;
     }
 
     .hud-box {
@@ -378,21 +390,29 @@
       font-family: 'Chakra Petch', sans-serif;
       font-weight: 600;
       font-size: 0.82rem;
-      transition: background 0.15s;
+      transition: background 0.15s, border-color 0.15s;
     }
 
     .icon-btn:hover {
       background: rgba(255, 255, 255, 0.18);
     }
 
+    .icon-btn.pit-requested {
+      background: rgba(0, 168, 255, 0.35);
+      border-color: #38bdf8;
+      color: #7dd3fc;
+    }
+
     /* Center Status Banners (Countdown, Slipstream, Pit Alert, Wrong Way) */
     #center-banner {
       position: absolute;
-      top: 24%;
+      top: 22%;
       left: 50%;
       transform: translateX(-50%);
       text-align: center;
       pointer-events: none;
+      width: 90%;
+      max-width: 520px;
     }
 
     #countdown-text {
@@ -413,11 +433,11 @@
       font-weight: 700;
       font-size: 0.9rem;
       letter-spacing: 0.8px;
-      background: rgba(0, 168, 255, 0.85);
+      background: rgba(0, 168, 255, 0.88);
       color: #fff;
-      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.45);
       opacity: 0;
-      transition: opacity 0.2s;
+      transition: opacity 0.2s, background-color 0.2s;
     }
 
     /* Pit Stop Progress Overlay */
@@ -448,13 +468,14 @@
       width: 0%;
       height: 100%;
       background: linear-gradient(90deg, #00a8ff, #00e676);
+      transition: width 0.08s linear;
     }
 
     .pit-actions {
       display: flex;
       gap: 10px;
       justify-content: center;
-      margin-top: 10px;
+      margin-top: 12px;
     }
 
     .pit-btn {
@@ -467,6 +488,11 @@
       cursor: pointer;
       color: #fff;
       background: rgba(255,255,255,0.12);
+      transition: transform 0.1s, background 0.15s;
+    }
+
+    .pit-btn:hover {
+      background: rgba(255,255,255,0.22);
     }
 
     .pit-btn.primary {
@@ -482,7 +508,7 @@
 
     .low-fuel-alert {
       animation: pulseAmber 0.75s infinite ease-in-out;
-      border: 1px solid #fbbf24;
+      border: 1px solid #fbbf24 !important;
     }
 
     /* Bottom Telemetry & MFD (Multi-Function Display) */
@@ -497,7 +523,7 @@
     /* MFD Fuel & Tire Widget */
     .mfd-panel {
       padding: 12px 16px;
-      min-width: 235px;
+      min-width: 245px;
       pointer-events: auto;
     }
 
@@ -636,7 +662,7 @@
     #touch-controls {
       display: none;
       position: absolute;
-      bottom: 125px;
+      bottom: 135px;
       left: 0;
       right: 0;
       padding: 0 16px;
@@ -800,7 +826,8 @@
           <div class="controls-hint">
             <kbd>W A S D</kbd> / <kbd>Arrows</kbd> Drive &nbsp;•&nbsp;
             <kbd>Space</kbd> Drift &nbsp;•&nbsp;
-            <kbd>1-6</kbd> or <kbd>Q/E</kbd> Fuel Map
+            <kbd>1-6</kbd> or <kbd>Q/E</kbd> Fuel Map &nbsp;•&nbsp;
+            <kbd>P</kbd> Pit Box
           </div>
         </div>
         <button class="start-btn" id="start-race-btn">Start Race</button>
@@ -840,6 +867,7 @@
         </div>
 
         <div class="hud-actions">
+          <button class="icon-btn" id="pit-request-btn" title="Box This Lap (P)">🏁 Box In</button>
           <button class="icon-btn" id="toggle-sound-btn">🔊 Audio</button>
           <button class="icon-btn" id="quit-race-btn">✕ Exit</button>
         </div>
@@ -883,7 +911,7 @@
       <!-- Bottom Telemetry Bar -->
       <div class="hud-bottom">
         <!-- GT7 Multi-Function Display (Fuel Map & Tire Wear) -->
-        <div class="gt-panel mfd-panel">
+        <div class="gt-panel mfd-panel" id="mfd-panel">
           <div class="mfd-header">
             <span class="mfd-title">MFD • FUEL & TIRES</span>
             <div class="fuel-map-controls">
@@ -960,8 +988,8 @@
             <div class="font-race" style="font-size: 1.4rem; font-weight: 700; color: var(--gt-gold);" id="res-prize">+ Cr. 485,000</div>
           </div>
           <div style="text-align: right;">
-            <div style="font-size: 0.75rem; color: #94a3b8;">Clean Race Bonus</div>
-            <div class="font-race" style="font-size: 1rem; color: #4ade80;">+50% APPLIED</div>
+            <div style="font-size: 0.75rem; color: #94a3b8;" id="res-bonus-label">Clean Race Bonus</div>
+            <div class="font-race" style="font-size: 1rem; color: #4ade80;" id="res-bonus-val">+50% APPLIED</div>
           </div>
         </div>
 
@@ -1143,227 +1171,355 @@
         this.osc2.frequency.setTargetAtTime(baseFreq * harmonicMult, now, 0.03);
         this.subOsc.frequency.setTargetAtTime(baseFreq * 0.5, now, 0.03);
 
-        this.filter.frequency.setTargetAtTime(350 + rpmRatio * 1800 + (throttle ? 400 : 0), now, 0.04);
-        const targetVol = 0.045 + rpmRatio * 0.065 + (throttle ? 0.025 : 0);
-        this.gainNode.gain.setTargetAtTime(targetVol, now, 0.05);
+        this.filter.frequency.setTargetAtTime(350 + rpmRatio * 1850 + (throttle ? 450 : 0), now, 0.04);
 
-        const slideVol = isSliding ? 0.045 : onKerb ? 0.035 : 0;
-        this.screechGain.gain.setTargetAtTime(slideVol, now, 0.04);
+        const targetVol = (0.045 + rpmRatio * 0.075 + (throttle ? 0.025 : 0));
+        this.gainNode.gain.setTargetAtTime(targetVol, now, 0.04);
+
+        const noiseVol = isSliding ? 0.055 : onKerb ? 0.035 : 0;
+        this.screechGain.gain.setTargetAtTime(noiseVol, now, 0.04);
       }
 
-      playLowFuelChime() {
+      triggerShiftPop() {
+        if (!this.running || !this.ctx || this.muted) return;
+        const now = this.ctx.currentTime;
+        const popOsc = this.ctx.createOscillator();
+        const popGain = this.ctx.createGain();
+        popOsc.type = 'triangle';
+        popOsc.frequency.setValueAtTime(140, now);
+        popOsc.frequency.exponentialRampToValueAtTime(38, now + 0.12);
+        popGain.gain.setValueAtTime(0.14, now);
+        popGain.gain.exponentialRampToValueAtTime(0.001, now + 0.13);
+        popOsc.connect(popGain);
+        popGain.connect(this.ctx.destination);
+        popOsc.start(now);
+        popOsc.stop(now + 0.14);
+      }
+
+      triggerBeep(freq = 660, duration = 0.12) {
+        if (!this.ctx) this.init();
         if (!this.ctx || this.muted) return;
         if (this.ctx.state === 'suspended') this.ctx.resume();
         const now = this.ctx.currentTime;
         const osc = this.ctx.createOscillator();
-        const g = this.ctx.createGain();
-        osc.type = 'triangle';
-        osc.frequency.setValueAtTime(880, now);
-        osc.frequency.setValueAtTime(660, now + 0.11);
-        g.gain.setValueAtTime(0.08, now);
-        g.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
-        osc.connect(g);
-        g.connect(this.ctx.destination);
+        const gain = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, now);
+        gain.gain.setValueAtTime(0.08, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
         osc.start(now);
-        osc.stop(now + 0.29);
+        osc.stop(now + duration + 0.01);
       }
 
-      stop() {
+      silence() {
         if (!this.running || !this.ctx) return;
-        this.gainNode.gain.setTargetAtTime(0, this.ctx.currentTime, 0.05);
-        this.screechGain.gain.setTargetAtTime(0, this.ctx.currentTime, 0.05);
+        const now = this.ctx.currentTime;
+        this.gainNode.gain.setTargetAtTime(0, now, 0.05);
+        this.screechGain.gain.setTargetAtTime(0, now, 0.05);
       }
     }
 
     const audio = new EngineAudio();
-// ... existing code ... -->
-    // Player Telemetry
-    let player = {
-      x: 0, // -1 to +1 across road width
-      z: 0, // distance along track
-      speed: 0, // internal units/sec
-      steerAngle: 0,
-      pitch: 0,
-      prevGear: 1,
-      backfireTimer: 0,
-      fuel: 100,
-      tireHealth: 100,
-      fuelMap: 1, // 1 = Power, 6 = Lean
-      lap: 1,
-      lapTime: 0,
-      bestLap: null,
-      totalTime: 0,
-      pitTimer: 0,
-      pitTargetFuel: 100,
-      lowFuelWarned: false,
-      inSlipstream: false,
-      isDrifting: false,
-      onKerb: false,
-      finished: false,
-      finishTime: 0
-    };
 
-    let rivals = [];
-    let particles = [];
-    let clouds = [];
-    let lastFrameTime = 0;
+    // ==================== GAME STATE & CONFIGURATION ====================
+    const STORAGE_KEY = 'gt7_sardegna_credits_v1';
+    let playerCredits = parseInt(localStorage.getItem(STORAGE_KEY) || '1250000', 10);
+    if (isNaN(playerCredits)) playerCredits = 1250000;
+
+    let selectedCarIndex = 0;
+    let totalLaps = 3;
+
+    // Pseudo-3D Road Constants
+    const SEGMENT_LENGTH = 200;
+    const RUMBLE_LENGTH = 3;
+    const ROAD_WIDTH = 2000;
+    const LANES = 3;
+    const FIELD_OF_VIEW = 100;
+    const CAMERA_HEIGHT = 1050;
+    const CAMERA_DEPTH = 1 / Math.tan((FIELD_OF_VIEW / 2) * Math.PI / 180);
+    const DRAW_DISTANCE = 260;
+
+    let segments = [];
+    let trackLength = 0;
+    let minimapPoints = [];
+
+    // Live Race State
+    const state = {
+      mode: 'MENU', // MENU, COUNTDOWN, RACING, PIT, FINISHED
+      countdownTimer: 3.5,
+      lastCountdownInt: 4,
+      raceTime: 0,
+      currentLapTime: 0,
+      bestLapTime: Infinity,
+      lap: 1,
+      totalTrackZ: 0, // Cumulative Z distance traveled for accurate rank/gap
+      position: 0,    // Z position within current lap [0, trackLength)
+      playerX: 0,     // Normalized lateral position [-1..1 is road, beyond is off-track]
+      speed: 0,       // Internal units/sec (max ~13500 => ~338 km/h)
+      rpm: 0.15,
+      gear: 1,
+      steerAngle: 0,
+      driftFactor: 0,
+      exhaustFlame: 0,
+      fuel: 100,      // 0..100%
+      fuelMap: 1,     // 1 (Rich/Power) to 6 (Lean/Eco)
+      tireWear: 100,  // 0..100%
+      pitRequested: false,
+      pitAutoFill: false,
+      pitTimer: 0,
+      cleanRace: true,
+      slipstream: false,
+      offTrack: false,
+      onKerb: false,
+      aiCars: [],
+      particles: [],
+      statusBannerTimeout: null
+    };
 
     // Input State
     const keys = {
-      up: false,
-      down: false,
       left: false,
       right: false,
+      up: false,
+      down: false,
       drift: false
     };
 
-    // ==================== BUILD SARDEGNA-INSPIRED CIRCUIT ====================
-    function buildTrack() {
-      segments = [];
+    // ==================== DOM REFERENCES ====================
+    const canvas = document.getElementById('race-canvas');
+    const ctx = canvas.getContext('2d');
+    const minimapCanvas = document.getElementById('minimap-canvas');
+    const minimapCtx = minimapCanvas.getContext('2d');
 
-      function addSegment(curve, y) {
-        const n = segments.length;
-        segments.push({
-          index: n,
-          p1: { world: { y: lastY(), z: n * SEGMENT_LENGTH }, camera: {}, screen: {} },
-          p2: { world: { y: y, z: (n + 1) * SEGMENT_LENGTH }, camera: {}, screen: {} },
-          curve: curve,
-          color: Math.floor(n / RUMBLE_LENGTH) % 2 ? 'dark' : 'light',
-          hasPit: n >= 15 && n <= 85,
-          scenery: []
-        });
-      }
+    const menuOverlay = document.getElementById('menu-overlay');
+    const hudOverlay = document.getElementById('hud-overlay');
+    const pitOverlay = document.getElementById('pit-overlay');
+    const resultsOverlay = document.getElementById('results-overlay');
 
-      function lastY() {
-        return segments.length === 0 ? 0 : segments[segments.length - 1].p2.world.y;
-      }
-
-      function addRoad(enter, hold, leave, curve, y) {
-        const startY = lastY();
-        const endY = startY + y * SEGMENT_LENGTH;
-        const total = enter + hold + leave;
-        for (let n = 0; n < enter; n++) {
-          addSegment(easeIn(0, curve, n / enter), easeInOut(startY, endY, n / total));
-        }
-        for (let n = 0; n < hold; n++) {
-          addSegment(curve, easeInOut(startY, endY, (enter + n) / total));
-        }
-        for (let n = 0; n < leave; n++) {
-          addSegment(easeInOut(curve, 0, n / leave), easeInOut(startY, endY, (enter + hold + n) / total));
-        }
-      }
-
-      function easeIn(a, b, percent) {
-        return a + (b - a) * Math.pow(percent, 2);
-      }
-
-      function easeInOut(a, b, percent) {
-        return a + (b - a) * ((-Math.cos(percent * Math.PI) / 2) + 0.5);
-      }
-
-      // Sardegna Road Track - A Layout
-      // 1. Main Start/Finish Straight & Pit Lane
-      addRoad(0, 110, 0, 0, 0);
-      // 2. Turn 1: Fast downhill right sweeper
-      addRoad(25, 55, 25, 3.2, -35);
-      // 3. Turn 2-3: Technical S-bend uphill
-      addRoad(20, 40, 20, -3.8, 25);
-      addRoad(20, 35, 20, 2.6, 20);
-      // 4. Back hill straightaway
-      addRoad(15, 75, 15, 0, 35);
-      // 5. Heavy braking hairpin right (Turn 6)
-      addRoad(30, 50, 30, 5.2, -20);
-      // 6. Flowing Mediterranean hillside esses
-      addRoad(20, 45, 20, -3.0, -30);
-      addRoad(20, 45, 20, 2.8, 15);
-      // 7. High-speed windmill section
-      addRoad(15, 65, 15, -1.6, 25);
-      // 8. Final sweeping hairpin onto main straight
-      addRoad(30, 60, 30, 4.6, -35);
-      addRoad(10, 40, 0, 0, 0);
-
-      trackLength = segments.length * SEGMENT_LENGTH;
-
-      // Populate Mediterranean Trackside Scenery (Cypress trees, cliffs, braking boards, Sardegna banners, windmills)
-      for (let i = 0; i < segments.length; i++) {
-        const seg = segments[i];
-        if (i % 6 === 0) {
-          seg.scenery.push({ type: 'cypress', offset: -1.45 - Math.random() * 1.4, scale: 0.9 + Math.random() * 0.45 });
-          seg.scenery.push({ type: 'cypress', offset: 1.55 + Math.random() * 1.5, scale: 0.9 + Math.random() * 0.45 });
-        }
-        if (i % 14 === 0 && !seg.hasPit) {
-          seg.scenery.push({ type: 'board', offset: -1.24 });
-          seg.scenery.push({ type: 'board', offset: 1.24 });
-        }
-        // Distance Braking Markers before major hairpins (Segments ~310 and ~565)
-        if (i === 285 || i === 540) seg.scenery.push({ type: 'brakeBoard', text: '300', offset: -1.18 });
-        if (i === 295 || i === 550) seg.scenery.push({ type: 'brakeBoard', text: '200', offset: -1.18 });
-        if (i === 305 || i === 560) seg.scenery.push({ type: 'brakeBoard', text: '100', offset: -1.18 });
-
-        // Pit Garages & Pit Wall along main straight
-        if (i >= 18 && i <= 82 && i % 8 === 0) {
-          seg.scenery.push({ type: 'pitGarage', offset: -1.95 });
-        }
-
-        if (i === 5 || i === 110 || i === 480) {
-          seg.scenery.push({ type: 'gantry', offset: 0 });
-        }
-        if (i % 120 === 40) {
-          seg.scenery.push({ type: 'windmill', offset: -2.6 });
-        }
-      }
-
-      // Initialize drifting golden sunset clouds
-      clouds = Array.from({ length: 9 }, (_, idx) => ({
-        x: (idx / 9) * 1.4 - 0.2,
-        y: 0.08 + (idx % 4) * 0.065,
-        w: 160 + (idx % 3) * 90,
-        h: 22 + (idx % 2) * 12,
-        speed: 0.004 + (idx % 3) * 0.002
-      }));
-
-      computeMinimapPath();
+    // ==================== UTILITY FORMATTING ====================
+    function formatTime(sec) {
+      if (!isFinite(sec) || sec <= 0) return "--:--.---";
+      const mins = Math.floor(sec / 60);
+      const remSec = sec % 60;
+      const wholeSec = Math.floor(remSec);
+      const ms = Math.floor((remSec - wholeSec) * 1000);
+      return `${mins}:${String(wholeSec).padStart(2, '0')}.${String(ms).padStart(3, '0')}`;
     }
 
-    function computeMinimapPath() {
-      minimapPoints = [];
-      let x = 0, y = 0, angle = 0;
-      let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+    function formatCredits(cr) {
+      return `Cr. ${Math.round(cr).toLocaleString()}`;
+    }
 
-      for (let i = 0; i < segments.length; i++) {
-        angle += segments[i].curve * 0.0165;
-        x += Math.cos(angle) * 4;
-        y += Math.sin(angle) * 4;
-        minimapPoints.push({ x, y });
-        if (x < minX) minX = x;
-        if (x > maxX) maxX = x;
-        if (y < minY) minY = y;
-        if (y > maxY) maxY = y;
+    function showStatusPill(text, bgColor = 'rgba(0, 168, 255, 0.88)', duration = 0) {
+      const pill = document.getElementById('status-pill');
+      pill.textContent = text;
+      pill.style.background = bgColor;
+      pill.style.opacity = '1';
+      if (state.statusBannerTimeout) clearTimeout(state.statusBannerTimeout);
+      if (duration > 0) {
+        state.statusBannerTimeout = setTimeout(() => {
+          pill.style.opacity = '0';
+        }, duration);
+      }
+    }
+
+    function hideStatusPill() {
+      const pill = document.getElementById('status-pill');
+      pill.style.opacity = '0';
+    }
+
+    // ==================== CAR PREVIEW & VEHICLE RENDERER ====================
+    function drawCarGraphic(targetCtx, cx, cy, scale, carSpec, steer = 0, braking = false, flame = 0, isPrototype = false) {
+      targetCtx.save();
+      targetCtx.translate(cx, cy);
+      targetCtx.scale(scale, scale);
+
+      // Subtle body roll tilt
+      const roll = steer * 0.045;
+      targetCtx.rotate(roll);
+
+      // Ground Contact Shadow
+      targetCtx.fillStyle = 'rgba(0, 0, 0, 0.55)';
+      targetCtx.beginPath();
+      targetCtx.ellipse(0, 26, 98, 16, 0, 0, Math.PI * 2);
+      targetCtx.fill();
+
+      // Rear Tires
+      targetCtx.fillStyle = '#111318';
+      targetCtx.beginPath();
+      targetCtx.roundRect(-88, -2, 26, 32, 5);
+      targetCtx.roundRect(62, -2, 26, 32, 5);
+      targetCtx.fill();
+
+      // Tire tread highlight
+      targetCtx.fillStyle = '#262b36';
+      targetCtx.fillRect(-84, 0, 10, 28);
+      targetCtx.fillRect(74, 0, 10, 28);
+
+      // Rear Diffuser
+      targetCtx.fillStyle = '#0f172a';
+      targetCtx.beginPath();
+      targetCtx.moveTo(-64, 14);
+      targetCtx.lineTo(64, 14);
+      targetCtx.lineTo(56, 26);
+      targetCtx.lineTo(-56, 26);
+      targetCtx.closePath();
+      targetCtx.fill();
+
+      // Diffuser fins
+      targetCtx.strokeStyle = '#334155';
+      targetCtx.lineWidth = 2;
+      for (let fx = -42; fx <= 42; fx += 14) {
+        targetCtx.beginPath();
+        targetCtx.moveTo(fx, 14);
+        targetCtx.lineTo(fx, 25);
+        targetCtx.stroke();
       }
 
-      const spanX = maxX - minX || 1;
-      const spanY = maxY - minY || 1;
-      const scale = Math.min(104 / spanX, 82 / spanY);
+      // Main Rear Haunches / Bodywork
+      targetCtx.fillStyle = carSpec.primaryColor;
+      targetCtx.beginPath();
+      targetCtx.moveTo(-82, 14);
+      targetCtx.lineTo(-78, -14);
+      targetCtx.quadraticCurveTo(-55, -24, -36, -24);
+      targetCtx.lineTo(36, -24);
+      targetCtx.quadraticCurveTo(55, -24, 78, -14);
+      targetCtx.lineTo(82, 14);
+      targetCtx.closePath();
+      targetCtx.fill();
 
-      minimapPoints = minimapPoints.map(pt => ({
-        x: 13 + (pt.x - minX) * scale,
-        y: 12 + (pt.y - minY) * scale
-      }));
+      // Secondary Livery Accents (Side pods / Racing stripes)
+      targetCtx.fillStyle = carSpec.secondaryColor;
+      targetCtx.beginPath();
+      targetCtx.moveTo(-78, -4);
+      targetCtx.lineTo(-42, -16);
+      targetCtx.lineTo(-32, 14);
+      targetCtx.lineTo(-80, 14);
+      targetCtx.closePath();
+      targetCtx.fill();
+
+      targetCtx.beginPath();
+      targetCtx.moveTo(78, -4);
+      targetCtx.lineTo(42, -16);
+      targetCtx.lineTo(32, 14);
+      targetCtx.lineTo(80, 14);
+      targetCtx.closePath();
+      targetCtx.fill();
+
+      // Center accent stripe
+      targetCtx.fillStyle = carSpec.accentColor || '#ffffff';
+      targetCtx.fillRect(-10, -24, 20, 38);
+
+      // Cockpit / Canopy Dome
+      targetCtx.fillStyle = '#0b1120';
+      targetCtx.beginPath();
+      if (isPrototype) {
+        // Low sleek Le Mans prototype bubble canopy + dorsal fin
+        targetCtx.moveTo(-34, -22);
+        targetCtx.quadraticCurveTo(0, -48, 34, -22);
+        targetCtx.closePath();
+        targetCtx.fill();
+        // Shark fin
+        targetCtx.fillStyle = carSpec.primaryColor;
+        targetCtx.fillRect(-3, -44, 6, 22);
+      } else {
+        // GT3 Greenhouse & Rear Window
+        targetCtx.moveTo(-44, -22);
+        targetCtx.lineTo(-30, -44);
+        targetCtx.lineTo(30, -44);
+        targetCtx.lineTo(44, -22);
+        targetCtx.closePath();
+        targetCtx.fill();
+
+        // Windshield reflection glare
+        targetCtx.fillStyle = 'rgba(148, 163, 184, 0.25)';
+        targetCtx.beginPath();
+        targetCtx.moveTo(-26, -40);
+        targetCtx.lineTo(8, -40);
+        targetCtx.lineTo(-6, -24);
+        targetCtx.lineTo(-34, -24);
+        targetCtx.closePath();
+        targetCtx.fill();
+      }
+
+      // Swan-Neck Rear GT Wing
+      targetCtx.fillStyle = '#0f172a';
+      // Wing pylons
+      targetCtx.fillRect(-34, -46, 5, 24);
+      targetCtx.fillRect(29, -46, 5, 24);
+      // Main wing blade
+      targetCtx.fillStyle = carSpec.secondaryColor;
+      targetCtx.beginPath();
+      targetCtx.roundRect(-84, -52, 168, 8, 3);
+      targetCtx.fill();
+      // Wing endplates
+      targetCtx.fillStyle = carSpec.primaryColor;
+      targetCtx.fillRect(-86, -56, 5, 18);
+      targetCtx.fillRect(81, -56, 5, 18);
+
+      // Tail Lights & Brake Glow
+      const lightColor = braking ? '#ff1e27' : '#991b1b';
+      targetCtx.fillStyle = lightColor;
+      if (braking) {
+        targetCtx.shadowColor = '#ff0015';
+        targetCtx.shadowBlur = 18;
+      }
+      targetCtx.beginPath();
+      targetCtx.roundRect(-72, -10, 26, 7, 2);
+      targetCtx.roundRect(46, -10, 26, 7, 2);
+      targetCtx.fill();
+      targetCtx.shadowBlur = 0;
+
+      // Rain Light (Center Flashing / Red LED)
+      targetCtx.fillStyle = braking ? '#ffffff' : '#ef4444';
+      targetCtx.fillRect(-4, 6, 8, 6);
+
+      // Number Plate Badge
+      targetCtx.fillStyle = '#ffffff';
+      targetCtx.beginPath();
+      targetCtx.roundRect(-16, -14, 32, 16, 3);
+      targetCtx.fill();
+      targetCtx.fillStyle = '#0f172a';
+      targetCtx.font = 'bold 11px "Chakra Petch", sans-serif';
+      targetCtx.textAlign = 'center';
+      targetCtx.textBaseline = 'middle';
+      targetCtx.fillText(carSpec.number || '800', 0, -5.5);
+
+      // Twin Exhaust Tips & Upshift Backfire Flames
+      targetCtx.fillStyle = '#475569';
+      targetCtx.beginPath();
+      targetCtx.arc(-24, 17, 5, 0, Math.PI * 2);
+      targetCtx.arc(24, 17, 5, 0, Math.PI * 2);
+      targetCtx.fill();
+
+      if (flame > 0.05) {
+        const fRadius = 11 * flame;
+        const grad = targetCtx.createRadialGradient(-24, 17, 1, -24, 17, fRadius);
+        grad.addColorStop(0, '#ffffff');
+        grad.addColorStop(0.4, '#38bdf8');
+        grad.addColorStop(0.8, '#ff5e1a');
+        grad.addColorStop(1, 'rgba(255,94,26,0)');
+        targetCtx.fillStyle = grad;
+        targetCtx.beginPath();
+        targetCtx.arc(-24, 17, fRadius, 0, Math.PI * 2);
+        targetCtx.arc(24, 17, fRadius, 0, Math.PI * 2);
+        targetCtx.fill();
+      }
+
+      targetCtx.restore();
     }
 
-    function findSegment(z) {
-      const wrappedZ = ((z % trackLength) + trackLength) % trackLength;
-      return segments[Math.floor(wrappedZ / SEGMENT_LENGTH)];
-    }
-
-    // ==================== UI & MENU INITIALIZATION ====================
-    function renderCarMenu() {
+    // ==================== MENU INITIALIZATION ====================
+    function initMenu() {
+      document.getElementById('credits-display').textContent = formatCredits(playerCredits);
       const grid = document.getElementById('car-grid');
       grid.innerHTML = '';
 
-      CARS.forEach(car => {
+      CARS.forEach((car, idx) => {
         const card = document.createElement('div');
-        card.className = `car-card ${car.id === selectedCar.id ? 'selected' : ''}`;
+        card.className = `car-card ${idx === selectedCarIndex ? 'selected' : ''}`;
         card.innerHTML = `
           <div>
             <div class="car-card-header">
@@ -1371,7 +1527,7 @@
               <span class="car-pp">${car.pp}</span>
             </div>
             <div class="car-preview-box">
-              ${createCarSVG(car)}
+              <canvas class="car-preview-canvas" width="190" height="74" id="preview-car-${idx}"></canvas>
             </div>
             <div class="car-name">${car.name}</div>
             <div class="car-desc">${car.desc}</div>
@@ -1391,495 +1547,210 @@
             </div>
             <div class="stat-row" style="margin-bottom:0;">
               <span>Fuel Economy</span>
-              <div class="stat-bar-bg"><div class="stat-bar-fill" style="width:${car.stats.fuel}%; background: linear-gradient(90deg, #00a8ff, #00e676);"></div></div>
+              <div class="stat-bar-bg"><div class="stat-bar-fill" style="width:${car.stats.fuel}%"></div></div>
             </div>
           </div>
         `;
+
         card.addEventListener('click', () => {
-          selectedCar = car;
-          renderCarMenu();
-        });
-        grid.appendChild(card);
-      });
-    }
-
-    function createCarSVG(car) {
-      return `
-        <svg width="175" height="58" viewBox="0 0 180 60">
-          <!-- Shadow -->
-          <ellipse cx="90" cy="51" rx="76" ry="6" fill="rgba(0,0,0,0.65)" />
-          <!-- Rear Wing -->
-          <path d="M16 20 L34 20 L30 32 L20 32 Z" fill="${car.secondaryColor}" />
-          <rect x="12" y="17" width="24" height="4" rx="2" fill="${car.primaryColor}" />
-          <!-- Main Body -->
-          <path d="M22 44 L26 28 Q52 24 72 16 Q105 14 132 25 L164 33 Q170 37 166 44 Z" fill="${car.primaryColor}" />
-          <!-- Livery Stripe -->
-          <path d="M45 43 L68 25 L112 25 L138 43 Z" fill="${car.secondaryColor}" opacity="0.92" />
-          <!-- Canopy -->
-          <path d="M74 17 Q96 15 118 25 L76 26 Z" fill="#0f172a" />
-          <!-- Wheels -->
-          <circle cx="48" cy="44" r="11" fill="#111" stroke="#475569" stroke-width="2.5" />
-          <circle cx="48" cy="44" r="5" fill="#d97706" />
-          <circle cx="138" cy="44" r="11" fill="#111" stroke="#475569" stroke-width="2.5" />
-          <circle cx="138" cy="44" r="5" fill="#d97706" />
-          <!-- Number Plate -->
-          <rect x="82" y="30" width="22" height="11" rx="2" fill="#ffffff" />
-          <text x="93" y="38.5" font-family="Chakra Petch, sans-serif" font-size="8.5" font-weight="700" fill="#000" text-anchor="middle">${car.number}</text>
-        </svg>
-      `;
-    }
-
-    // Lap selection buttons
-    document.querySelectorAll('.lap-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        document.querySelectorAll('.lap-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        totalLaps = parseInt(btn.dataset.laps, 10);
-      });
-    });
-
-    // ==================== RACE LIFECYCLE ====================
-    function startRace() {
-      audio.init();
-      buildTrack();
-
-      // Reset Player
-      player = {
-        x: -0.25,
-        z: 12 * SEGMENT_LENGTH,
-        speed: 0,
-        steerAngle: 0,
-        pitch: 0,
-        prevGear: 1,
-        backfireTimer: 0,
-        fuel: 100,
-        tireHealth: 100,
-        fuelMap: 1,
-        lap: 1,
-        lapTime: 0,
-        bestLap: null,
-        totalTime: 0,
-        pitTimer: 0,
-        pitTargetFuel: 100,
-        lowFuelWarned: false,
-        inSlipstream: false,
-        isDrifting: false,
-        onKerb: false,
-        finished: false,
-        finishTime: 0
-      };
-
-      // Initialize 5 AI Rivals in rolling start formation ahead
-      rivals = AI_DRIVERS.map((ai, idx) => ({
-        ...ai,
-        x: (idx % 2 === 0 ? 0.32 : -0.32),
-        z: (18 + idx * 6) * SEGMENT_LENGTH,
-        speed: 0,
-        lap: 1,
-        bestLap: null,
-        finished: false,
-        finishTime: 0,
-        targetLane: (idx % 2 === 0 ? 0.3 : -0.3)
-      }));
-
-      particles = [];
-      gameState = 'COUNTDOWN';
-      countdownTimer = 3.2;
-
-      document.getElementById('menu-overlay').style.display = 'none';
-      document.getElementById('results-overlay').style.display = 'none';
-      document.getElementById('pit-overlay').style.display = 'none';
-      document.getElementById('hud-overlay').style.display = 'flex';
-      updateFuelMapUI();
-    }
-
-    function adjustFuelMap(delta) {
-      player.fuelMap = Math.max(1, Math.min(6, player.fuelMap + delta));
-      updateFuelMapUI();
-      showStatusPill(`FUEL MAP ${player.fuelMap} — ${player.fuelMap === 1 ? 'MAX POWER' : player.fuelMap >= 5 ? 'LEAN ENDURANCE' : 'BALANCED'}`);
-    }
-
-    function updateFuelMapUI() {
-      document.getElementById('hud-fm-val').textContent = player.fuelMap;
-    }
-
-    let pillTimeout = null;
-    function showStatusPill(text, bgColor = 'rgba(0, 168, 255, 0.88)', isLowFuel = false) {
-      const pill = document.getElementById('status-pill');
-      pill.textContent = text;
-      pill.style.background = bgColor;
-      pill.style.opacity = '1';
-      pill.classList.toggle('low-fuel-alert', isLowFuel);
-      clearTimeout(pillTimeout);
-      pillTimeout = setTimeout(() => {
-        pill.style.opacity = '0';
-        pill.classList.remove('low-fuel-alert');
-      }, isLowFuel ? 2600 : 1500);
-    }
-
-    // ==================== PHYSICS & AI SIMULATION ====================
-    function updateSimulation(dt) {
-      if (gameState === 'MENU' || gameState === 'FINISHED') return;
-
-      // Drift sunset clouds subtly
-      for (const c of clouds) {
-        c.x += c.speed * dt;
-        if (c.x > 1.25) c.x = -0.25;
-      }
-
-      // Countdown Phase
-      if (gameState === 'COUNTDOWN') {
-        countdownTimer -= dt;
-        const cdEl = document.getElementById('countdown-text');
-        if (countdownTimer > 2.2) {
-          cdEl.textContent = '3';
-        } else if (countdownTimer > 1.2) {
-          cdEl.textContent = '2';
-        } else if (countdownTimer > 0.2) {
-          cdEl.textContent = '1';
-        } else if (countdownTimer > -0.6) {
-          cdEl.textContent = 'GREEN FLAG!';
-          cdEl.style.color = '#00e676';
-          if (gameState === 'COUNTDOWN') {
-            gameState = 'RACING';
-          }
-        }
-        audio.update(0.25 + (keys.up ? 0.35 : 0), keys.up, false, false, selectedCar.engineType);
-        return;
-      }
-
-      // Clear "GREEN FLAG!" text shortly after launch
-      if (countdownTimer > -1.2) {
-        countdownTimer -= dt;
-        if (countdownTimer <= -0.8) {
-          document.getElementById('countdown-text').textContent = '';
-          document.getElementById('countdown-text').style.color = '#fff';
-        }
-      }
-
-      // Handle Active Pit Stop Servicing
-      if (gameState === 'PIT') {
-        player.speed = 0;
-        player.pitTimer += dt;
-        const fuelNeeded = Math.max(0, player.pitTargetFuel - player.fuel);
-        const refuelRate = 28; // % per second
-        const tireChangeRate = 34; // % per second
-
-        player.fuel = Math.min(player.pitTargetFuel, player.fuel + refuelRate * dt);
-        player.tireHealth = Math.min(100, player.tireHealth + tireChangeRate * dt);
-        player.lapTime += dt;
-        player.totalTime += dt;
-
-        const pct = Math.min(100, ((player.fuel / Math.max(1, player.pitTargetFuel)) * 0.6 + (player.tireHealth / 100) * 0.4) * 100);
-        document.getElementById('pit-bar-fill').style.width = `${pct}%`;
-        document.getElementById('pit-fuel-readout').textContent = `Fuel: ${Math.round(player.fuel)}% / ${player.pitTargetFuel}%`;
-        document.getElementById('pit-tire-readout').textContent = `Tires: ${Math.round(player.tireHealth)}%`;
-
-        audio.update(0.15, false, false, false, selectedCar.engineType);
-
-        if (player.fuel >= player.pitTargetFuel - 0.2 && player.tireHealth >= 99.5) {
-          releaseFromPit();
-        }
-        updateAI(dt);
-        return;
-      }
-
-      // ---- PLAYER DRIVING PHYSICS ----
-      const currentSeg = findSegment(player.z);
-      const kmhConversion = 0.024;
-      const currentKmh = player.speed * kmhConversion;
-
-      // Fuel Map affects power & fuel burn rate
-      // Map 1 = 100% power, 100% burn (~1.35 laps per tank)
-      // Map 6 = 82% power, 48% burn (~2.8 laps per tank)
-      const fuelPowerMult = 1.0 - (player.fuelMap - 1) * 0.036;
-      const fuelBurnMult = 1.0 - (player.fuelMap - 1) * 0.104;
-      // Realistic fuel starvation sputter when tank hits 0%
-      const sputter = player.fuel <= 0 ? (0.34 + Math.sin(performance.now() * 0.035) * 0.14) : 1.0;
-
-      // Tire wear affects grip and cornering stability
-      const tireGripMult = 0.58 + (player.tireHealth / 100) * 0.42;
-
-      // Check Slipstream behind any AI car
-      player.inSlipstream = false;
-      for (const ai of rivals) {
-        let dz = ai.z - player.z;
-        if (dz < 0) dz += trackLength;
-        if (dz > 350 && dz < 3400 && Math.abs(ai.x - player.x) < 0.32 && currentKmh > 140) {
-          player.inSlipstream = true;
-          break;
-        }
-      }
-
-      if (player.inSlipstream && Math.random() < 0.08) {
-        showStatusPill('SLIPSTREAM DRAFTING +18 KM/H', 'rgba(0, 168, 255, 0.85)');
-      }
-
-      const slipstreamBonus = player.inSlipstream ? 1.065 : 1.0;
-      const maxInternalSpeed = (selectedCar.maxSpeed / kmhConversion) * fuelPowerMult * sputter * slipstreamBonus;
-      const accelRate = 6700 * selectedCar.accel * fuelPowerMult * sputter;
-      const brakeRate = 12800;
-      const dragRate = 1900;
-
-      // Acceleration, Braking & Suspension Pitch
-      let targetPitch = 0;
-      if (keys.up && player.fuel > 0) {
-        player.speed += accelRate * dt;
-        targetPitch = -1.0;
-      } else if (keys.down) {
-        player.speed -= brakeRate * dt;
-        targetPitch = 1.3;
-      } else {
-        player.speed -= dragRate * dt;
-      }
-      player.pitch += (targetPitch - player.pitch) * Math.min(1, dt * 8);
-
-      // Off-road gravel slowdown (Sardegna sandy shoulders)
-      const isOffRoad = Math.abs(player.x) > 1.08;
-      player.onKerb = Math.abs(player.x) > 0.90 && Math.abs(player.x) <= 1.08;
-
-      if (isOffRoad && player.speed > 4500) {
-        player.speed -= 9500 * dt;
-        // Spawn dust particles
-        if (Math.random() < 0.6) {
-          particles.push({
-            x: (Math.random() - 0.5) * 40,
-            y: 0,
-            vx: (Math.random() - 0.5) * 90,
-            vy: -40 - Math.random() * 60,
-            life: 0.45,
-            color: 'rgba(194, 155, 112, 0.7)'
+          selectedCarIndex = idx;
+          document.querySelectorAll('.car-card').forEach((c, i) => {
+            c.classList.toggle('selected', i === idx);
           });
-        }
-      }
+          audio.triggerBeep(780, 0.08);
+        });
 
-      player.speed = Math.max(0, Math.min(maxInternalSpeed, player.speed));
+        grid.appendChild(card);
 
-      // Steering & Centrifugal Curve Force
-      const speedRatio = player.speed / (selectedCar.maxSpeed / kmhConversion);
-      const driftMult = keys.drift && speedRatio > 0.35 ? 1.38 : 1.0;
-      const steerSpeed = 2.05 * selectedCar.handling * tireGripMult * driftMult;
+        // Render car livery preview on mini canvas
+        const pCanvas = card.querySelector(`#preview-car-${idx}`);
+        const pCtx = pCanvas.getContext('2d');
+        drawCarGraphic(pCtx, 95, 50, 0.85, car, 0, false, 0, car.id === 'mazda787b');
+      });
 
-      let steerInput = 0;
-      if (keys.left) steerInput -= 1;
-      if (keys.right) steerInput += 1;
-
-      player.steerAngle += (steerInput - player.steerAngle) * Math.min(1, dt * 11);
-      player.x += player.steerAngle * steerSpeed * Math.min(1.1, speedRatio + 0.18) * dt;
-
-      // Centrifugal force pulls car outward on corners
-      const centrifugal = currentSeg.curve * 0.46 * Math.pow(speedRatio, 1.85) * (1.15 - tireGripMult * 0.25);
-      player.x -= centrifugal * dt;
-
-      // Hard track barrier clamp
-      if (player.x < -1.48) {
-        player.x = -1.48;
-        player.speed *= 0.96;
-      } else if (player.x > 1.48) {
-        player.x = 1.48;
-        player.speed *= 0.96;
-      }
-
-      // Pit Lane Entry Trigger (Left apron on main straight)
-      if (currentSeg.hasPit && player.x < -0.92 && player.speed > 900) {
-        gameState = 'PIT';
-        player.pitTimer = 0;
-        player.pitTargetFuel = 100;
-        player.lowFuelWarned = false;
-        document.getElementById('pit-overlay').style.display = 'block';
-        return;
-      } else if (currentSeg.hasPit && player.fuel < 45) {
-        showStatusPill('PIT LANE OPEN ON LEFT — STAY LEFT TO PIT!', 'rgba(255, 94, 26, 0.94)', true);
-      }
-
-      // Advance Z & Check Lap Crossing
-      const prevZ = player.z;
-      player.z += player.speed * dt;
-      player.lapTime += dt;
-      player.totalTime += dt;
-
-      if (player.z >= trackLength) {
-        player.z -= trackLength;
-        if (player.bestLap === null || player.lapTime < player.bestLap) {
-          player.bestLap = player.lapTime;
-          showStatusPill(`NEW BEST LAP: ${formatTime(player.bestLap)}`, 'rgba(168, 85, 247, 0.92)');
-        }
-        player.lapTime = 0;
-        player.lap++;
-
-        if (player.lap > totalLaps) {
-          finishRace();
-          return;
-        } else if (player.lap === totalLaps) {
-          showStatusPill('FINAL LAP!', 'rgba(230, 0, 18, 0.92)');
-        }
-      }
-
-      // Fuel Consumption & Tire Degradation
-      // Accelerated endurance burn: ~1.35 laps on Fuel Map 1 so pit strategy is mandatory!
-      if (keys.up && player.speed > 500) {
-        const baseFuelRate = 4.35 / selectedCar.fuelEff;
-        player.fuel = Math.max(0, player.fuel - baseFuelRate * fuelBurnMult * dt);
-      }
-
-      // Low Fuel Warning (< 26% remaining)
-      if (player.fuel <= 26 && player.fuel > 0 && !player.lowFuelWarned) {
-        player.lowFuelWarned = true;
-        audio.playLowFuelChime();
-        showStatusPill('⚠ LOW FUEL — PIT THIS LAP OR LEAN MIX (MAP 4-6)', 'rgba(230, 0, 18, 0.95)', true);
-      } else if (player.fuel <= 0 && Math.random() < 0.12) {
-        showStatusPill('⛽ OUT OF FUEL — LIMP MODE TO PIT LANE!', 'rgba(220, 38, 38, 0.96)', true);
-      }
-
-      const cornerStress = 1 + Math.abs(currentSeg.curve) * 0.48 + (player.isDrifting ? 1.45 : 0) + (isOffRoad ? 1.8 : 0);
-      const baseTireRate = 1.65 / selectedCar.tireLife;
-      player.tireHealth = Math.max(10, player.tireHealth - baseTireRate * cornerStress * speedRatio * dt);
-
-      // Gear Shift Detection & Exhaust Backfire Flame
-      const newKmh = player.speed * kmhConversion;
-      const curGear = newKmh === 0 ? 1 : Math.min(6, Math.max(1, Math.ceil(newKmh / 56)));
-      if (curGear !== player.prevGear && newKmh > 65) {
-        player.backfireTimer = 0.16;
-      }
-      player.prevGear = curGear;
-      if (player.backfireTimer > 0) player.backfireTimer -= dt;
-
-      // Update Audio Synthesizer
-      const gearRatio = (currentKmh % 58) / 58;
-      const rpmRatio = Math.min(1, 0.25 + gearRatio * 0.72 + speedRatio * 0.15);
-      audio.update(rpmRatio, keys.up && player.fuel > 0, player.isDrifting, player.onKerb || isOffRoad, selectedCar.engineType);
-
-      // Update AI Rivals & Collisions
-      updateAI(dt);
-      updateParticles(dt);
-    }
-
-    function releaseFromPit() {
-      gameState = 'RACING';
-      player.x = -0.76;
-      player.speed = 3400;
-      player.lowFuelWarned = player.fuel <= 26;
-      document.getElementById('pit-overlay').style.display = 'none';
-      showStatusPill(`PIT EXIT — ${Math.round(player.fuel)}% FUEL & FRESH TIRES`, 'rgba(0, 230, 118, 0.92)');
-    }
-
-    function updateAI(dt) {
-      const kmhConversion = 0.024;
-      for (const ai of rivals) {
-        const seg = findSegment(ai.z);
-        // AI slows slightly for sharp corners
-        const cornerFactor = Math.max(0.74, 1 - Math.abs(seg.curve) * 0.048);
-        const targetSpeed = ((326 * ai.skill * cornerFactor) / kmhConversion);
-
-        ai.speed += (targetSpeed - ai.speed) * Math.min(1, dt * 1.8);
-        ai.z += ai.speed * dt;
-
-        if (ai.z >= trackLength) {
-          ai.z -= trackLength;
-          ai.lap++;
-        }
-
-        // Smooth lane weaving
-        ai.x += (ai.targetLane - ai.x) * dt * 1.5;
-        if (Math.random() < 0.008) {
-          ai.targetLane = (Math.random() - 0.5) * 1.1;
-        }
-
-        // Player-AI Bump Physics
-        let dz = Math.abs(ai.z - player.z);
-        if (dz > trackLength / 2) dz = trackLength - dz;
-        if (dz < 240 && Math.abs(ai.x - player.x) < 0.26) {
-          if (player.z < ai.z) {
-            player.speed *= 0.90;
-            ai.speed *= 1.03;
-          }
-          const push = player.x < ai.x ? -0.05 : 0.05;
-          player.x += push;
-          ai.x -= push;
-        }
-      }
-    }
-
-    function updateParticles(dt) {
-      for (let i = particles.length - 1; i >= 0; i--) {
-        const p = particles[i];
-        p.x += p.vx * dt;
-        p.y += p.vy * dt;
-        p.life -= dt;
-        if (p.life <= 0) particles.splice(i, 1);
-      }
-    }
-
-    function finishRace() {
-      gameState = 'FINISHED';
-      audio.stop();
-      document.getElementById('hud-overlay').style.display = 'none';
-      document.getElementById('results-overlay').style.display = 'flex';
-
-      const standings = computeStandings();
-      const playerRank = standings.findIndex(s => s.isPlayer) + 1;
-
-      const prizeTable = [485000, 300000, 210000, 150000, 100000, 75000];
-      const basePrize = prizeTable[playerRank - 1] || 75000;
-      const finalPrize = Math.round(basePrize * 1.5); // Clean Race Bonus
-      credits += finalPrize;
-      document.getElementById('credits-display').textContent = `Cr. ${credits.toLocaleString()}`;
-
-      const suffix = playerRank === 1 ? 'ST' : playerRank === 2 ? 'ND' : playerRank === 3 ? 'RD' : 'TH';
-      document.getElementById('res-headline').textContent = `${playerRank}${suffix} PLACE — ${playerRank <= 3 ? 'PODIUM FINISH!' : 'RACE COMPLETE'}`;
-      document.getElementById('res-prize').textContent = `+ Cr. ${finalPrize.toLocaleString()}`;
-
-      const tbody = document.getElementById('standings-body');
-      tbody.innerHTML = '';
-      standings.forEach((entry, idx) => {
-        const tr = document.createElement('tr');
-        if (entry.isPlayer) tr.className = 'player-row';
-        tr.innerHTML = `
-          <td class="font-race">${idx + 1}</td>
-          <td>${entry.name}</td>
-          <td class="font-race">${entry.bestLap ? formatTime(entry.bestLap) : '1:38.412'}</td>
-          <td class="font-race">${idx === 0 ? 'WINNER' : `+${(idx * 2.4 + Math.random() * 1.5).toFixed(2)}s`}</td>
-        `;
-        tbody.appendChild(tr);
+      // Lap buttons
+      document.querySelectorAll('.lap-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          totalLaps = parseInt(btn.dataset.laps, 10);
+          document.querySelectorAll('.lap-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          audio.triggerBeep(640, 0.07);
+        });
       });
     }
 
-    function computeStandings() {
-      const all = [
-        {
-          name: `YOU • ${selectedCar.name}`,
-          progress: (player.lap - 1) * trackLength + player.z,
-          bestLap: player.bestLap,
-          isPlayer: true
-        },
-        ...rivals.map((ai, i) => ({
-          name: ai.name,
-          progress: (ai.lap - 1) * trackLength + ai.z,
-          bestLap: 96.5 + i * 0.9,
-          isPlayer: false
-        }))
-      ];
-      all.sort((a, b) => b.progress - a.progress);
-      return all;
+    // ==================== SARDEGNA ROAD TRACK - A BUILDER ====================
+    function lastY() {
+      return segments.length === 0 ? 0 : segments[segments.length - 1].p2.world.y;
     }
 
-    // ==================== PSEUDO-3D RENDERING ENGINE ====================
-    function resizeCanvas() {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
+    function addSegment(curve, y) {
+      const n = segments.length;
+      const isDark = Math.floor(n / RUMBLE_LENGTH) % 2 === 1;
+      segments.push({
+        index: n,
+        p1: { world: { y: lastY(), z: n * SEGMENT_LENGTH }, camera: {}, screen: {} },
+        p2: { world: { y: y, z: (n + 1) * SEGMENT_LENGTH }, camera: {}, screen: {} },
+        curve: curve,
+        sprites: [],
+        cars: [],
+        pitZone: false,
+        startLine: false,
+        color: {
+          road: isDark ? '#272b33' : '#2e333d',
+          grass: isDark ? '#3a4a28' : '#43552f',
+          rumble: isDark ? '#e60012' : '#f8fafc',
+          lane: isDark ? '#cbd5e1' : 'transparent'
+        }
+      });
     }
-    window.addEventListener('resize', resizeCanvas);
-    resizeCanvas();
 
+    function easeIn(a, b, percent) {
+      return a + (b - a) * Math.pow(percent, 2);
+    }
+
+    function easeOut(a, b, percent) {
+      return a + (b - a) * (1 - Math.pow(1 - percent, 2));
+    }
+
+    function easeInOut(a, b, percent) {
+      return a + (b - a) * ((-Math.cos(percent * Math.PI) / 2) + 0.5);
+    }
+
+    function addRoad(enter, hold, leave, curve, y) {
+      const startY = lastY();
+      const endY = startY + (y * SEGMENT_LENGTH);
+      const total = enter + hold + leave;
+      for (let n = 0; n < enter; n++) {
+        addSegment(easeIn(0, curve, n / enter), easeInOut(startY, endY, n / total));
+      }
+      for (let n = 0; n < hold; n++) {
+        addSegment(curve, easeInOut(startY, endY, (enter + n) / total));
+      }
+      for (let n = 0; n < leave; n++) {
+        addSegment(easeInOut(curve, 0, n / leave), easeInOut(startY, endY, (enter + hold + n) / total));
+      }
+    }
+
+    function addSprite(n, type, offset) {
+      if (segments[n]) {
+        segments[n].sprites.push({ type, offset });
+      }
+    }
+
+    function buildSardegnaTrack() {
+      segments = [];
+
+      // Sector 1: Main Start/Finish Straight & Pit Lane Exit -> Heavy Braking Turn 1
+      addRoad(25, 110, 25, 0, 0);          // Main straight (0..160)
+      addRoad(20, 45, 25, 3.6, -15);       // Turn 1: Fast downhill right-hander
+      addRoad(15, 35, 15, -1.8, -10);      // Turn 2: Sweeping left kink
+      addRoad(20, 50, 20, 0, 20);          // Uphill climb toward hairpin
+
+      // Sector 2: Technical Mid-Section & Sardinian Windmill Ridge
+      addRoad(25, 45, 25, -4.4, 15);       // Turn 4: Sharp uphill left hairpin
+      addRoad(15, 45, 15, 0, -25);         // Fast downhill plunge
+      addRoad(20, 50, 20, 3.2, 0);         // Double-apex right sweeper
+      addRoad(18, 40, 18, -3.5, 10);       // Chicane entry left
+      addRoad(18, 40, 18, 3.5, -10);       // Chicane exit right
+
+      // Sector 3: High-Speed Back Straight & Final Hairpin onto Pit Entry
+      addRoad(20, 95, 20, 0, 18);          // Back straight climb
+      addRoad(22, 48, 22, -3.9, -18);      // Penultimate sweeping left
+      addRoad(20, 40, 20, 4.2, 15);        // Final right-hander onto main straight
+
+      // Smoothly close elevation loop back to y = 0
+      const closingStart = segments.length;
+      addRoad(25, 65, 20, 0, -lastY() / SEGMENT_LENGTH);
+
+      trackLength = segments.length * SEGMENT_LENGTH;
+
+      // Mark Start/Finish Gantry & Pit Lane Zone (right side of main straight)
+      for (let i = 0; i < 6; i++) {
+        segments[i].startLine = true;
+      }
+
+      // Pit Entry Zone at end of lap & beginning of main straight
+      for (let i = segments.length - 75; i < segments.length; i++) {
+        segments[i].pitZone = true;
+      }
+      for (let i = 0; i < 45; i++) {
+        segments[i].pitZone = true;
+      }
+
+      // Populate Roadside Scenery (Grandstands, Sardinian Windmills, Cypress Trees, Brake Boards)
+      for (let n = 0; n < segments.length; n++) {
+        // Start/Finish Gantry & Grandstands
+        if (n === 3) {
+          addSprite(n, 'gantry', 0);
+        }
+        if (n < 90 || n > segments.length - 60) {
+          if (n % 12 === 0) addSprite(n, 'grandstand', -1.55);
+          if (n % 8 === 0) addSprite(n, 'pitwall', 1.28);
+        }
+
+        // Braking distance boards before major corners
+        if (n === 145 || n === 315 || n === 695 || n === 815) addSprite(n, 'board300', -1.22);
+        if (n === 152 || n === 322 || n === 702 || n === 822) addSprite(n, 'board200', -1.22);
+        if (n === 158 || n === 328 || n === 708 || n === 828) addSprite(n, 'board100', -1.22);
+
+        // Pit Entry Sign on right side before Pit Lane
+        if (n === segments.length - 75) {
+          addSprite(n, 'pitsign', 1.25);
+        }
+
+        // Mediterranean Cypress Trees, Olive Groves, and Sardinian Wind Turbines
+        if (n % 7 === 0 && n > 95 && n < segments.length - 65) {
+          const side = (n % 14 === 0) ? -1.45 - (n % 5) * 0.25 : 1.45 + (n % 4) * 0.25;
+          addSprite(n, 'cypress', side);
+        }
+        if (n % 45 === 15) {
+          addSprite(n, 'windmill', (n % 90 === 15) ? -2.9 : 2.9);
+        }
+        if (n % 22 === 5) {
+          addSprite(n, 'banner', (n % 44 === 5) ? -1.35 : 1.35);
+        }
+      }
+
+      // Precompute 2D Top-Down Track Coordinates for the HUD Minimap
+      computeMinimapGeometry();
+    }
+
+    function computeMinimapGeometry() {
+      minimapPoints = [];
+      let x = 0, y = 0, angle = 0;
+      for (let i = 0; i < segments.length; i++) {
+        angle += segments[i].curve * 0.0085;
+        x += Math.cos(angle);
+        y += Math.sin(angle);
+        minimapPoints.push({ x, y });
+      }
+      // Close loop smoothly by linearly distributing drift error
+      const endX = minimapPoints[minimapPoints.length - 1].x;
+      const endY = minimapPoints[minimapPoints.length - 1].y;
+      for (let i = 0; i < minimapPoints.length; i++) {
+        const t = i / (minimapPoints.length - 1);
+        minimapPoints[i].x -= endX * t;
+        minimapPoints[i].y -= endY * t;
+      }
+    }
+
+    function findSegment(z) {
+      const wrappedZ = ((z % trackLength) + trackLength) % trackLength;
+      const idx = Math.floor(wrappedZ / SEGMENT_LENGTH) % segments.length;
+      return segments[idx];
+    }
+
+    // ==================== 3D PROJECTION & RENDERING HELPERS ====================
     function project(p, cameraX, cameraY, cameraZ, width, height) {
       p.camera.x = (p.world.x || 0) - cameraX;
       p.camera.y = (p.world.y || 0) - cameraY;
       p.camera.z = (p.world.z || 0) - cameraZ;
-      const scale = CAMERA_DEPTH / Math.max(1, p.camera.z);
-      p.screen.scale = scale;
-      p.screen.x = Math.round((width / 2) + (scale * p.camera.x * width / 2));
-      p.screen.y = Math.round((height / 2) - (scale * p.camera.y * height / 2));
-      p.screen.w = Math.round((scale * ROAD_WIDTH * width / 2));
+      const zSafe = Math.max(1, p.camera.z);
+      p.screen.scale = CAMERA_DEPTH / zSafe;
+      p.screen.x = Math.round((width / 2) + (p.screen.scale * p.camera.x * width / 2));
+      p.screen.y = Math.round((height / 2) - (p.screen.scale * p.camera.y * height / 2));
+      p.screen.w = Math.round((p.screen.scale * ROAD_WIDTH * width / 2));
     }
 
     function drawPolygon(x1, y1, x2, y2, x3, y3, x4, y4, color) {
@@ -1893,747 +1764,1101 @@
       ctx.fill();
     }
 
-    function renderScene() {
-      const W = canvas.width;
-      const H = canvas.height;
-      const kmh = player.speed * 0.024;
-      const speedNorm = Math.min(1, kmh / 340);
+    function renderSegment(width, height, seg) {
+      const x1 = seg.p1.screen.x, y1 = seg.p1.screen.y, w1 = seg.p1.screen.w;
+      const x2 = seg.p2.screen.x, y2 = seg.p2.screen.y, w2 = seg.p2.screen.w;
 
-      // 1. Rich Multi-Stop Sardegna Sunset Sky Gradient
-      const skyGrad = ctx.createLinearGradient(0, 0, 0, H * 0.56);
-      skyGrad.addColorStop(0, '#0c1021');
-      skyGrad.addColorStop(0.28, '#281d3d');
-      skyGrad.addColorStop(0.56, '#7c2d36');
-      skyGrad.addColorStop(0.82, '#d95d24');
-      skyGrad.addColorStop(1, '#fbbf24');
-      ctx.fillStyle = skyGrad;
-      ctx.fillRect(0, 0, W, H);
+      const r1 = w1 * 0.14;
+      const r2 = w2 * 0.14;
+      const l1 = w1 * 0.025;
+      const l2 = w2 * 0.025;
 
-      // Sunset Sun Glow & Volumetric Lens Flare
-      const baseSeg = findSegment(player.z);
-      const sunX = W * 0.65 - (baseSeg ? baseSeg.curve * 24 : 0);
-      const sunY = H * 0.43;
-      const sunGrad = ctx.createRadialGradient(sunX, sunY, 10, sunX, sunY, 210);
-      sunGrad.addColorStop(0, 'rgba(255, 253, 224, 1)');
-      sunGrad.addColorStop(0.22, 'rgba(253, 186, 116, 0.65)');
-      sunGrad.addColorStop(0.55, 'rgba(234, 88, 12, 0.22)');
-      sunGrad.addColorStop(1, 'rgba(234, 88, 12, 0)');
-      ctx.fillStyle = sunGrad;
-      ctx.fillRect(0, 0, W, H * 0.62);
+      // Full-width Mediterranean Grass Terrain
+      ctx.fillStyle = seg.color.grass;
+      ctx.fillRect(0, y2, width, y1 - y2);
 
-      // Horizontal Anamorphic Sunset Lens Flare Streak
-      const flareGrad = ctx.createLinearGradient(sunX - 260, sunY, sunX + 260, sunY);
-      flareGrad.addColorStop(0, 'rgba(255, 200, 120, 0)');
-      flareGrad.addColorStop(0.5, 'rgba(255, 230, 170, 0.35)');
-      flareGrad.addColorStop(1, 'rgba(255, 200, 120, 0)');
-      ctx.fillStyle = flareGrad;
-      ctx.fillRect(sunX - 260, sunY - 3, 520, 6);
+      // Gravel Runoff Shoulder
+      drawPolygon(x1 - w1 * 1.32, y1, x1 + w1 * 1.32, y1, x2 + w2 * 1.32, y2, x2 - w2 * 1.32, y2, '#8c7a6b');
 
-      // Drifting Golden-Lit Sunset Clouds
-      for (const c of clouds) {
-        const cx = c.x * W;
-        const cy = c.y * H;
-        const cGrad = ctx.createLinearGradient(cx, cy - c.h, cx, cy + c.h);
-        cGrad.addColorStop(0, 'rgba(55, 36, 68, 0.55)');
-        cGrad.addColorStop(1, 'rgba(251, 146, 60, 0.42)');
-        ctx.fillStyle = cGrad;
-        ctx.beginPath();
-        ctx.ellipse(cx, cy, c.w, c.h, 0, 0, Math.PI * 2);
-        ctx.fill();
+      // Red & White Kerbs / Rumblestrips
+      drawPolygon(x1 - w1 - r1, y1, x1 - w1, y1, x2 - w2, y2, x2 - w2 - r2, y2, seg.color.rumble);
+      drawPolygon(x1 + w1, y1, x1 + w1 + r1, y1, x2 + w2 + r2, y2, x2 + w2, y2, seg.color.rumble);
+
+      // Main Asphalt Surface
+      drawPolygon(x1 - w1, y1, x1 + w1, y1, x2 + w2, y2, x2 - w2, y2, seg.color.road);
+
+      // Pit Lane Strip on Right Edge during Pit Zone
+      if (seg.pitZone) {
+        drawPolygon(x1 + w1 * 0.72, y1, x1 + w1 * 1.0, y1, x2 + w2 * 1.0, y2, x2 + w2 * 0.72, y2, '#1e3a5f');
+        // Blue/White Pit Entry Line
+        drawPolygon(x1 + w1 * 0.70, y1, x1 + w1 * 0.74, y1, x2 + w2 * 0.74, y2, x2 + w2 * 0.70, y2, '#38bdf8');
       }
 
-      // 2. Layered Sardinian Mountain Ranges Silhouette
-      // Far Ridge
-      ctx.fillStyle = '#331d2c';
-      ctx.beginPath();
-      ctx.moveTo(0, H * 0.55);
-      for (let x = 0; x <= W + 60; x += 50) {
-        const hillH = Math.sin(x * 0.003 + 0.4) * 52 + Math.cos(x * 0.007) * 28;
-        ctx.lineTo(x, H * 0.48 - hillH);
-      }
-      ctx.lineTo(W, H);
-      ctx.lineTo(0, H);
-      ctx.closePath();
-      ctx.fill();
-
-      // Near Ridge
-      ctx.fillStyle = '#1f141e';
-      ctx.beginPath();
-      ctx.moveTo(0, H * 0.55);
-      for (let x = 0; x <= W + 60; x += 50) {
-        const hillH = Math.sin(x * 0.0045 + 1.5) * 34 + Math.cos(x * 0.01) * 18;
-        ctx.lineTo(x, H * 0.50 - hillH);
-      }
-      ctx.lineTo(W, H);
-      ctx.lineTo(0, H);
-      ctx.closePath();
-      ctx.fill();
-
-      if (segments.length === 0) return;
-
-      // 3. Project Road Segments (with subtle dynamic FOV speed stretch)
-      const dynamicFov = CAMERA_DEPTH * (1 - speedNorm * 0.08);
-      const baseIndex = baseSeg.index;
-      const basePercent = (player.z % SEGMENT_LENGTH) / SEGMENT_LENGTH;
-      const playerY = baseSeg.p1.world.y + (baseSeg.p2.world.y - baseSeg.p1.world.y) * basePercent;
-
-      let maxY = H;
-      let x = 0;
-      let dx = -(baseSeg.curve * basePercent);
-
-      const visibleSegments = [];
-
-      for (let n = 0; n < DRAW_DISTANCE; n++) {
-        const segIndex = (baseIndex + n) % segments.length;
-        const seg = segments[segIndex];
-        const looped = segIndex < baseIndex;
-        const camZ = player.z - (looped ? trackLength : 0);
-
-        seg.p1.world.x = x;
-        seg.p2.world.x = x + dx;
-
-        // Custom projection with dynamic speed FOV
-        seg.p1.camera.x = (seg.p1.world.x || 0) - player.x * ROAD_WIDTH;
-        seg.p1.camera.y = (seg.p1.world.y || 0) - (playerY + CAMERA_HEIGHT);
-        seg.p1.camera.z = (seg.p1.world.z || 0) - camZ;
-        const s1 = dynamicFov / Math.max(1, seg.p1.camera.z);
-        seg.p1.screen.scale = s1;
-        seg.p1.screen.x = Math.round((W / 2) + (s1 * seg.p1.camera.x * W / 2));
-        seg.p1.screen.y = Math.round((H / 2) - (s1 * seg.p1.camera.y * H / 2));
-        seg.p1.screen.w = Math.round((s1 * ROAD_WIDTH * W / 2));
-
-        seg.p2.camera.x = (seg.p2.world.x || 0) - player.x * ROAD_WIDTH;
-        seg.p2.camera.y = (seg.p2.world.y || 0) - (playerY + CAMERA_HEIGHT);
-        seg.p2.camera.z = (seg.p2.world.z || 0) - camZ;
-        const s2 = dynamicFov / Math.max(1, seg.p2.camera.z);
-        seg.p2.screen.scale = s2;
-        seg.p2.screen.x = Math.round((W / 2) + (s2 * seg.p2.camera.x * W / 2));
-        seg.p2.screen.y = Math.round((H / 2) - (s2 * seg.p2.camera.y * H / 2));
-        seg.p2.screen.w = Math.round((s2 * ROAD_WIDTH * W / 2));
-
-        x += dx;
-        dx += seg.curve;
-
-        seg.clip = maxY;
-        if (seg.p1.camera.z <= dynamicFov || seg.p2.screen.y >= maxY || seg.p2.screen.y >= seg.p1.screen.y) {
-          continue;
-        }
-
-        visibleSegments.push(seg);
-
-        // Rich Mediterranean Terrain, Asphalt, & Sunset Specular Highlights
-        const isDark = seg.color === 'dark';
-        const grassColor = isDark ? '#54432e' : '#655138';
-        const rumbleColor = isDark ? '#e60012' : '#f8fafc';
-        const roadColor = isDark ? '#22262e' : '#292e38';
-        const laneColor = isDark ? 'rgba(255,255,255,0.42)' : 'transparent';
-
-        const x1 = seg.p1.screen.x, y1 = seg.p1.screen.y, w1 = seg.p1.screen.w;
-        const x2 = seg.p2.screen.x, y2 = seg.p2.screen.y, w2 = seg.p2.screen.w;
-
-        // Ground terrain
-        ctx.fillStyle = grassColor;
-        ctx.fillRect(0, y2, W, y1 - y2);
-
-        // Pit Lane Apron on Left of Main Straight
-        if (seg.hasPit) {
+      // Start / Finish Checkered Line
+      if (seg.startLine) {
+        const cols = 12;
+        const step1 = (w1 * 2) / cols;
+        const step2 = (w2 * 2) / cols;
+        for (let c = 0; c < cols; c++) {
+          const isWhite = (c + seg.index) % 2 === 0;
           drawPolygon(
-            x1 - w1 * 1.65, y1,
-            x1 - w1 * 1.05, y1,
-            x2 - w2 * 1.05, y2,
-            x2 - w2 * 1.65, y2,
-            isDark ? '#1e293b' : '#334155'
+            x1 - w1 + c * step1, y1,
+            x1 - w1 + (c + 1) * step1, y1,
+            x2 - w2 + (c + 1) * step2, y2,
+            x2 - w2 + c * step2, y2,
+            isWhite ? '#f8fafc' : '#0f172a'
           );
-          drawPolygon(
-            x1 - w1 * 1.08, y1,
-            x1 - w1 * 1.02, y1,
-            x2 - w2 * 1.02, y2,
-            x2 - w2 * 1.08, y2,
-            '#38bdf8'
-          );
-          // Glowing Pit Box Target Zone (Segments 42 to 54)
-          if (segIndex >= 42 && segIndex <= 54) {
-            drawPolygon(
-              x1 - w1 * 1.55, y1,
-              x1 - w1 * 1.15, y1,
-              x2 - w2 * 1.15, y2,
-              x2 - w2 * 1.55, y2,
-              'rgba(0, 230, 118, 0.35)'
-            );
-          }
         }
-
-        // Metallic Roadside Guardrails
-        const g1 = w1 * 1.28;
-        const g2 = w2 * 1.28;
-        const gh1 = w1 * 0.08;
-        const gh2 = w2 * 0.08;
-        ctx.fillStyle = isDark ? '#94a3b8' : '#cbd5e1';
-        ctx.fillRect(x1 - g1, y1 - gh1, w1 * 0.03, gh1);
-        ctx.fillRect(x1 + g1, y1 - gh1, w1 * 0.03, gh1);
-
-        // Red & White Apex Kerbs
-        const r1 = w1 * 0.12;
-        const r2 = w2 * 0.12;
-        drawPolygon(x1 - w1 - r1, y1, x1 - w1, y1, x2 - w2, y2, x2 - w2 - r2, y2, rumbleColor);
-        drawPolygon(x1 + w1, y1, x1 + w1 + r1, y1, x2 + w2 + r2, y2, x2 + w2, y2, rumbleColor);
-
-        // Main Asphalt Track
-        drawPolygon(x1 - w1, y1, x1 + w1, y1, x2 + w2, y2, x2 - w2, y2, roadColor);
-
-        // Warm Sunset Specular Sheen on Asphalt
-        drawPolygon(
-          x1 - w1 * 0.45, y1,
-          x1 + w1 * 0.65, y1,
-          x2 + w2 * 0.65, y2,
-          x2 - w2 * 0.45, y2,
-          'rgba(251, 146, 60, 0.055)'
-        );
-
-        // Dark Rubber Racing Groove & Braking Zone Skid Marks
-        const grooveShift1 = -seg.curve * w1 * 0.08;
-        const grooveShift2 = -seg.curve * w2 * 0.08;
-        drawPolygon(
-          x1 - w1 * 0.32 + grooveShift1, y1,
-          x1 + w1 * 0.32 + grooveShift1, y1,
-          x2 + w2 * 0.32 + grooveShift2, y2,
-          x2 - w2 * 0.32 + grooveShift2, y2,
-          'rgba(10, 12, 16, 0.24)'
-        );
-
-        // Crisp White Track Limit Lines
-        const tw1 = w1 * 0.025;
-        const tw2 = w2 * 0.025;
-        drawPolygon(x1 - w1, y1, x1 - w1 + tw1, y1, x2 - w2 + tw2, y2, x2 - w2, y2, 'rgba(255,255,255,0.75)');
-        drawPolygon(x1 + w1 - tw1, y1, x1 + w1, y1, x2 + w2, y2, x2 + w2 - tw2, y2, 'rgba(255,255,255,0.75)');
-
-        // Start/Finish Checkered Line
-        if (segIndex === 10 || segIndex === 11) {
-          drawPolygon(x1 - w1, y1, x1 + w1, y1, x2 + w2, y2, x2 - w2, y2, segIndex === 10 ? '#ffffff' : '#111827');
+      } else if (seg.color.lane !== 'transparent') {
+        // Dashed Lane Dividers
+        const laneW1 = w1 * 2 / LANES;
+        const laneW2 = w2 * 2 / LANES;
+        let lanex1 = x1 - w1 + laneW1;
+        let lanex2 = x2 - w2 + laneW2;
+        for (let lane = 1; lane < LANES; lane++) {
+          drawPolygon(lanex1 - l1 / 2, y1, lanex1 + l1 / 2, y1, lanex2 + l2 / 2, y2, lanex2 - l2 / 2, y2, seg.color.lane);
+          lanex1 += laneW1;
+          lanex2 += laneW2;
         }
-
-        // Center Dashed Line
-        if (laneColor !== 'transparent') {
-          const l1 = w1 * 0.02;
-          const l2 = w2 * 0.02;
-          drawPolygon(x1 - l1, y1, x1 + l1, y1, x2 + l2, y2, x2 - l2, y2, laneColor);
-        }
-
-        maxY = y2;
-      }
-
-      // 4. Render Trackside Scenery & Rival Cars Back-to-Front
-      for (let i = visibleSegments.length - 1; i >= 0; i--) {
-        const seg = visibleSegments[i];
-        const scale = seg.p1.screen.scale;
-        const roadCenterX = seg.p1.screen.x;
-        const roadHalfW = seg.p1.screen.w;
-        const groundY = seg.p1.screen.y;
-
-        // Draw Scenery Objects
-        for (const item of seg.scenery) {
-          const sx = roadCenterX + item.offset * roadHalfW;
-          if (item.type === 'cypress') {
-            drawCypressTree(sx, groundY, scale * 1650 * item.scale);
-          } else if (item.type === 'board') {
-            drawSponsorBoard(sx, groundY, scale * 920);
-          } else if (item.type === 'brakeBoard') {
-            drawBrakeMarker(sx, groundY, scale * 820, item.text);
-          } else if (item.type === 'pitGarage') {
-            drawPitGarage(sx, groundY, scale * 1550);
-          } else if (item.type === 'gantry') {
-            drawSardegnaGantry(roadCenterX, groundY, roadHalfW);
-          } else if (item.type === 'windmill') {
-            drawWindmill(sx, groundY, scale * 2650);
-          }
-        }
-
-        // Draw AI Rival Cars on this segment
-        for (const ai of rivals) {
-          const aiSeg = findSegment(ai.z);
-          if (aiSeg.index === seg.index) {
-            const aiScreenX = roadCenterX + ai.x * roadHalfW;
-            const carWidth = Math.max(14, roadHalfW * 0.44);
-            drawRacerCar(aiScreenX, groundY, carWidth, ai.color1, ai.color2, '#ffffff', ai.number, 0, false, false, 0, false);
-          }
-        }
-      }
-
-      // 5. High-Speed Peripheral Motion Lines
-      if (speedNorm > 0.72) {
-        const alpha = (speedNorm - 0.72) * 0.55;
-        ctx.strokeStyle = `rgba(255, 220, 180, ${alpha})`;
-        ctx.lineWidth = 2;
-        for (let m = 0; m < 10; m++) {
-          const side = m % 2 === 0 ? 0.06 : 0.94;
-          const mx = W * side + (Math.random() - 0.5) * 80;
-          const my = H * 0.45 + Math.random() * H * 0.45;
-          ctx.beginPath();
-          ctx.moveTo(mx, my);
-          ctx.lineTo(mx + (side < 0.5 ? -45 : 45), my + 55);
-          ctx.stroke();
-        }
-      }
-
-      // 6. Draw Player Car in Foreground
-      const playerScreenX = W / 2 + player.steerAngle * 24;
-      const bounce = (player.onKerb ? (Math.random() - 0.5) * 6 : 0) + (player.speed > 1000 ? Math.sin(performance.now() * 0.05) * 1.5 : 0);
-      const playerScreenY = H * 0.86 + bounce;
-      const playerCarW = Math.min(275, Math.max(150, W * 0.21));
-
-      // Slipstream Wind Lines
-      if (player.inSlipstream) {
-        ctx.strokeStyle = 'rgba(56, 189, 248, 0.48)';
-        ctx.lineWidth = 2;
-        for (let i = 0; i < 6; i++) {
-          const lx = playerScreenX + (Math.random() - 0.5) * playerCarW * 1.4;
-          const ly = playerScreenY - 90 + Math.random() * 60;
-          ctx.beginPath();
-          ctx.moveTo(lx, ly);
-          ctx.lineTo(lx + (lx - W / 2) * 0.25, ly + 85);
-          ctx.stroke();
-        }
-      }
-
-      drawRacerCar(
-        playerScreenX,
-        playerScreenY,
-        playerCarW,
-        selectedCar.primaryColor,
-        selectedCar.secondaryColor,
-        selectedCar.accentColor,
-        selectedCar.number,
-        player.steerAngle,
-        keys.down,
-        player.isDrifting,
-        player.pitch,
-        player.backfireTimer > 0
-      );
-
-      // Render Dust/Smoke Particles
-      for (const p of particles) {
-        ctx.fillStyle = p.color;
-        ctx.beginPath();
-        ctx.arc(playerScreenX + p.x, playerScreenY + p.y, 10 * p.life, 0, Math.PI * 2);
-        ctx.fill();
       }
     }
 
-    // ==================== VECTOR SPRITE HELPERS ====================
-    function drawRacerCar(cx, bottomY, width, c1, c2, c3, number, steer, braking, drifting, pitch = 0, backfire = false) {
-      const h = width * 0.44;
+    function renderRoadsideSprite(sprite, scale, destX, destY, clipY, width) {
+      const sprScale = scale * width * 0.45;
+      if (sprScale < 0.015) return;
+
       ctx.save();
-      ctx.translate(cx, bottomY + pitch * 3);
-      ctx.rotate(steer * 0.065);
-
-      // Ground Contact Shadow
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.66)';
-      ctx.beginPath();
-      ctx.ellipse(0, 2 - pitch * 2, width * 0.54, h * 0.16, 0, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Drift Tire Smoke
-      if (drifting) {
-        ctx.fillStyle = 'rgba(226, 232, 240, 0.38)';
+      if (clipY) {
         ctx.beginPath();
-        ctx.arc(-width * 0.36, -2, width * 0.13, 0, Math.PI * 2);
-        ctx.arc(width * 0.36, -2, width * 0.13, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.rect(0, 0, width, clipY);
+        ctx.clip();
       }
 
-      // Wide Rear Tires
-      ctx.fillStyle = '#0f172a';
-      ctx.fillRect(-width * 0.47, -h * 0.45, width * 0.16, h * 0.45);
-      ctx.fillRect(width * 0.31, -h * 0.45, width * 0.16, h * 0.45);
+      ctx.translate(destX, destY);
 
-      // Rear Diffuser
-      ctx.fillStyle = '#1e293b';
-      ctx.fillRect(-width * 0.34, -h * 0.22, width * 0.68, h * 0.18);
-
-      // Twin Exhaust Tips & Backfire Flames on Gear Shifts
-      ctx.fillStyle = '#64748b';
-      ctx.fillRect(-width * 0.18, -h * 0.17, width * 0.06, h * 0.06);
-      ctx.fillRect(width * 0.12, -h * 0.17, width * 0.06, h * 0.06);
-
-      if (backfire) {
-        ctx.fillStyle = '#38bdf8';
-        ctx.beginPath();
-        ctx.arc(-width * 0.15, -h * 0.14, width * 0.055, 0, Math.PI * 2);
-        ctx.arc(width * 0.15, -h * 0.14, width * 0.055, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.fillStyle = '#fb923c';
-        ctx.beginPath();
-        ctx.arc(-width * 0.15, -h * 0.14, width * 0.032, 0, Math.PI * 2);
-        ctx.arc(width * 0.15, -h * 0.14, width * 0.032, 0, Math.PI * 2);
-        ctx.fill();
-      }
-
-      // Lower Widebody Fender & Rear Deck
-      ctx.fillStyle = c1;
-      ctx.beginPath();
-      ctx.moveTo(-width * 0.48, -h * 0.15);
-      ctx.lineTo(-width * 0.44, -h * 0.56);
-      ctx.lineTo(width * 0.44, -h * 0.56);
-      ctx.lineTo(width * 0.48, -h * 0.15);
-      ctx.closePath();
-      ctx.fill();
-
-      // Golden Sunset Specular Highlight along Rear Deck
-      ctx.fillStyle = 'rgba(255, 220, 160, 0.22)';
-      ctx.fillRect(-width * 0.42, -h * 0.56, width * 0.84, h * 0.05);
-
-      // Iconic Secondary Livery Chevron (Green on 787B)
-      ctx.fillStyle = c2;
-      ctx.beginPath();
-      ctx.moveTo(-width * 0.28, -h * 0.15);
-      ctx.lineTo(-width * 0.20, -h * 0.56);
-      ctx.lineTo(width * 0.20, -h * 0.56);
-      ctx.lineTo(width * 0.28, -h * 0.15);
-      ctx.closePath();
-      ctx.fill();
-
-      // Prototype Teardrop Cockpit Canopy
-      ctx.fillStyle = '#090d16';
-      ctx.beginPath();
-      ctx.moveTo(-width * 0.24, -h * 0.55);
-      ctx.quadraticCurveTo(0, -h * 1.02, width * 0.24, -h * 0.55);
-      ctx.closePath();
-      ctx.fill();
-
-      // Sunset Canopy Reflection Glint
-      ctx.fillStyle = 'rgba(251, 146, 60, 0.28)';
-      ctx.beginPath();
-      ctx.moveTo(-width * 0.14, -h * 0.62);
-      ctx.quadraticCurveTo(0, -h * 0.90, width * 0.14, -h * 0.62);
-      ctx.closePath();
-      ctx.fill();
-
-      // Roof Intake & Livery Accent
-      ctx.fillStyle = c1;
-      ctx.fillRect(-width * 0.05, -h * 0.84, width * 0.10, h * 0.16);
-
-      // High-Downforce GT Rear Wing & Endplates
-      ctx.fillStyle = '#111827';
-      ctx.fillRect(-width * 0.24, -h * 0.88, width * 0.03, h * 0.34);
-      ctx.fillRect(width * 0.21, -h * 0.88, width * 0.03, h * 0.34);
-
-      ctx.fillStyle = c1;
-      ctx.fillRect(-width * 0.46, -h * 0.93, width * 0.92, h * 0.09);
-      // Wing Endplates
-      ctx.fillStyle = c2;
-      ctx.fillRect(-width * 0.48, -h * 0.98, width * 0.035, h * 0.22);
-      ctx.fillRect(width * 0.445, -h * 0.98, width * 0.035, h * 0.22);
-
-      // Tail Lights & Brake Glow
-      ctx.fillStyle = braking ? '#ff1e1e' : '#991b1b';
-      ctx.fillRect(-width * 0.41, -h * 0.42, width * 0.14, h * 0.08);
-      ctx.fillRect(width * 0.27, -h * 0.42, width * 0.14, h * 0.08);
-
-      if (braking) {
-        ctx.shadowColor = '#ff0000';
-        ctx.shadowBlur = 18;
-        ctx.fillStyle = '#ff6b6b';
-        ctx.fillRect(-width * 0.39, -h * 0.41, width * 0.10, h * 0.05);
-        ctx.fillRect(width * 0.29, -h * 0.41, width * 0.10, h * 0.05);
-        ctx.shadowBlur = 0;
-      }
-
-      // Rear Number Plate (when car is large enough)
-      if (width > 55) {
-        ctx.fillStyle = c3;
-        ctx.fillRect(-width * 0.09, -h * 0.46, width * 0.18, h * 0.22);
-        ctx.fillStyle = '#000000';
-        ctx.font = `bold ${Math.max(8, Math.floor(h * 0.18))}px Chakra Petch, sans-serif`;
+      if (sprite.type === 'gantry') {
+        const span = Math.max(40, scale * ROAD_WIDTH * width * 0.56);
+        const h = Math.max(20, sprScale * 260);
+        ctx.fillStyle = '#1e293b';
+        ctx.fillRect(-span, -h, span * 0.06, h);
+        ctx.fillRect(span * 0.94, -h, span * 0.06, h);
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(-span, -h, span * 2, h * 0.24);
+        ctx.fillStyle = '#e60012';
+        ctx.fillRect(-span, -h * 0.78, span * 2, h * 0.05);
+        ctx.fillStyle = '#ffffff';
+        ctx.font = `bold ${Math.max(8, Math.floor(h * 0.13))}px "Chakra Petch", sans-serif`;
         ctx.textAlign = 'center';
-        ctx.fillText(number, 0, -h * 0.30);
+        ctx.fillText('GRAN TURISMO • SARDEGNA', 0, -h * 0.84);
+      } else if (sprite.type === 'cypress') {
+        const h = sprScale * 240;
+        const w = sprScale * 48;
+        ctx.fillStyle = '#3f2e21';
+        ctx.fillRect(-w * 0.14, -h * 0.25, w * 0.28, h * 0.25);
+        ctx.fillStyle = '#1f3d24';
+        ctx.beginPath();
+        ctx.ellipse(0, -h * 0.58, w * 0.55, h * 0.44, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#2d5433';
+        ctx.beginPath();
+        ctx.ellipse(-w * 0.12, -h * 0.6, w * 0.28, h * 0.36, 0, 0, Math.PI * 2);
+        ctx.fill();
+      } else if (sprite.type === 'windmill') {
+        const h = sprScale * 420;
+        const w = sprScale * 28;
+        ctx.fillStyle = '#e2e8f0';
+        ctx.beginPath();
+        ctx.moveTo(-w * 0.5, 0);
+        ctx.lineTo(-w * 0.22, -h);
+        ctx.lineTo(w * 0.22, -h);
+        ctx.lineTo(w * 0.5, 0);
+        ctx.closePath();
+        ctx.fill();
+
+        // Slowly rotating turbine blades
+        ctx.save();
+        ctx.translate(0, -h);
+        ctx.rotate(performance.now() * 0.0012);
+        ctx.fillStyle = '#f8fafc';
+        for (let b = 0; b < 3; b++) {
+          ctx.rotate((Math.PI * 2) / 3);
+          ctx.fillRect(-w * 0.08, 0, w * 0.16, h * 0.36);
+        }
+        ctx.restore();
+      } else if (sprite.type === 'grandstand') {
+        const w = sprScale * 240;
+        const h = sprScale * 130;
+        ctx.fillStyle = '#334155';
+        ctx.fillRect(-w / 2, -h, w, h);
+        ctx.fillStyle = '#e60012';
+        ctx.fillRect(-w / 2, -h, w, h * 0.18);
+        ctx.fillStyle = '#94a3b8';
+        for (let r = 1; r <= 4; r++) {
+          ctx.fillRect(-w * 0.46, -h + r * (h * 0.2), w * 0.92, h * 0.07);
+        }
+      } else if (sprite.type === 'pitwall') {
+        const w = sprScale * 90;
+        const h = sprScale * 42;
+        ctx.fillStyle = '#cbd5e1';
+        ctx.fillRect(-w / 2, -h, w, h);
+        ctx.fillStyle = '#00a8ff';
+        ctx.fillRect(-w / 2, -h, w, h * 0.28);
+      } else if (sprite.type === 'pitsign') {
+        const w = sprScale * 75;
+        const h = sprScale * 115;
+        ctx.fillStyle = '#475569';
+        ctx.fillRect(-w * 0.06, -h, w * 0.12, h);
+        ctx.fillStyle = '#0284c7';
+        ctx.fillRect(-w * 0.5, -h, w, h * 0.45);
+        ctx.fillStyle = '#ffffff';
+        ctx.font = `bold ${Math.max(8, Math.floor(h * 0.2))}px "Chakra Petch", sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.fillText('PIT IN', 0, -h * 0.72);
+      } else if (sprite.type.startsWith('board')) {
+        const dist = sprite.type.replace('board', '');
+        const w = sprScale * 55;
+        const h = sprScale * 85;
+        ctx.fillStyle = '#334155';
+        ctx.fillRect(-w * 0.07, -h, w * 0.14, h);
+        ctx.fillStyle = '#f8fafc';
+        ctx.fillRect(-w * 0.5, -h, w, h * 0.52);
+        ctx.fillStyle = '#0f172a';
+        ctx.font = `bold ${Math.max(7, Math.floor(h * 0.24))}px "Chakra Petch", sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.fillText(dist, 0, -h * 0.68);
+      } else if (sprite.type === 'banner') {
+        const w = sprScale * 120;
+        const h = sprScale * 36;
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(-w / 2, -h, w, h);
+        ctx.fillStyle = '#ff5e1a';
+        ctx.fillRect(-w / 2, -h, w, h * 0.25);
       }
 
       ctx.restore();
     }
 
-    function drawBrakeMarker(x, y, h, label) {
-      if (h < 8) return;
-      const w = h * 0.85;
-      ctx.fillStyle = '#334155';
-      ctx.fillRect(x - w * 0.08, y - h * 0.4, w * 0.16, h * 0.4);
-      ctx.fillStyle = '#f8fafc';
-      ctx.fillRect(x - w / 2, y - h, w, h * 0.65);
-      ctx.fillStyle = '#e60012';
-      ctx.fillRect(x - w / 2, y - h, w, h * 0.15);
-      if (w > 18) {
-        ctx.fillStyle = '#0f172a';
-        ctx.font = `bold ${Math.max(7, Math.floor(h * 0.32))}px Chakra Petch, sans-serif`;
-        ctx.textAlign = 'center';
-        ctx.fillText(label, x, y - h * 0.55);
-      }
-    }
+    function renderSunsetSkyAndHorizon(width, height, playerSegment, horizonOffset) {
+      // Mediterranean Golden Hour Gradient
+      const skyGrad = ctx.createLinearGradient(0, 0, 0, height * 0.58);
+      skyGrad.addColorStop(0, '#0f172a');
+      skyGrad.addColorStop(0.32, '#3b1d4a');
+      skyGrad.addColorStop(0.68, '#b83b3a');
+      skyGrad.addColorStop(1, '#ff9e44');
+      ctx.fillStyle = skyGrad;
+      ctx.fillRect(0, 0, width, height);
 
-    function drawPitGarage(x, y, h) {
-      if (h < 12) return;
-      const w = h * 1.9;
-      ctx.fillStyle = '#1e293b';
-      ctx.fillRect(x - w / 2, y - h, w, h);
-      ctx.fillStyle = '#e60012';
-      ctx.fillRect(x - w / 2, y - h, w, h * 0.16);
-      // Illuminated Garage Bay Door
-      ctx.fillStyle = '#334155';
-      ctx.fillRect(x - w * 0.35, y - h * 0.68, w * 0.7, h * 0.68);
-      ctx.fillStyle = 'rgba(253, 224, 71, 0.25)';
-      ctx.fillRect(x - w * 0.35, y - h * 0.68, w * 0.7, h * 0.18);
-    }
-
-    function drawCypressTree(x, y, h) {
-      if (h < 6) return;
-      const w = h * 0.26;
-      // Trunk
-      ctx.fillStyle = '#2d1e15';
-      ctx.fillRect(x - w * 0.15, y - h * 0.2, w * 0.3, h * 0.2);
-      // Foliage
-      ctx.fillStyle = '#1b3b24';
+      // Warm Low Sun Disc
+      const sunX = width * 0.5 - (playerSegment.curve * 18);
+      const sunY = height * 0.42 + horizonOffset * 0.25;
+      const sunGlow = ctx.createRadialGradient(sunX, sunY, 10, sunX, sunY, 180);
+      sunGlow.addColorStop(0, 'rgba(255, 248, 210, 0.95)');
+      sunGlow.addColorStop(0.25, 'rgba(255, 180, 70, 0.55)');
+      sunGlow.addColorStop(1, 'rgba(255, 110, 40, 0)');
+      ctx.fillStyle = sunGlow;
       ctx.beginPath();
-      ctx.moveTo(x, y - h);
-      ctx.quadraticCurveTo(x + w, y - h * 0.3, x, y - h * 0.16);
-      ctx.quadraticCurveTo(x - w, y - h * 0.3, x, y - h);
+      ctx.arc(sunX, sunY, 180, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Distant Sardinian Mountain Silhouette Layers
+      const baseHorizon = height * 0.50 + horizonOffset * 0.35;
+      ctx.fillStyle = '#24172b';
+      ctx.beginPath();
+      ctx.moveTo(0, height);
+      for (let x = 0; x <= width + 40; x += 40) {
+        const shift = (x + playerSegment.index * 2.5) * 0.004;
+        const peak = Math.sin(shift) * 38 + Math.cos(shift * 2.3) * 20;
+        ctx.lineTo(x, baseHorizon - 28 + peak);
+      }
+      ctx.lineTo(width, height);
+      ctx.closePath();
+      ctx.fill();
+
+      // Closer Ridge
+      ctx.fillStyle = '#1b1622';
+      ctx.beginPath();
+      ctx.moveTo(0, height);
+      for (let x = 0; x <= width + 30; x += 30) {
+        const shift = (x + playerSegment.index * 5) * 0.0065;
+        const peak = Math.cos(shift) * 22 + Math.sin(shift * 1.9) * 14;
+        ctx.lineTo(x, baseHorizon - 6 + peak);
+      }
+      ctx.lineTo(width, height);
+      ctx.closePath();
       ctx.fill();
     }
 
-    function drawSponsorBoard(x, y, h) {
-      if (h < 5) return;
-      const w = h * 2.2;
-      ctx.fillStyle = '#0f172a';
-      ctx.fillRect(x - w / 2, y - h, w, h * 0.75);
-      ctx.fillStyle = '#e60012';
-      ctx.fillRect(x - w / 2, y - h, w, h * 0.22);
-      if (w > 28) {
-        ctx.fillStyle = '#ffffff';
-        ctx.font = `bold ${Math.max(6, Math.floor(h * 0.28))}px Chakra Petch, sans-serif`;
-        ctx.textAlign = 'center';
-        ctx.fillText('GRAN TURISMO', x, y - h * 0.42);
+    // ==================== RACE INITIALIZATION & AI SPAWN ====================
+    function setupRace() {
+      buildSardegnaTrack();
+      const playerCar = CARS[selectedCarIndex];
+
+      state.mode = 'COUNTDOWN';
+      state.countdownTimer = 3.5;
+      state.lastCountdownInt = 4;
+      state.raceTime = 0;
+      state.currentLapTime = 0;
+      state.bestLapTime = Infinity;
+      state.lap = 1;
+      state.position = 20 * SEGMENT_LENGTH; // Grid P6 start
+      state.totalTrackZ = state.position;
+      state.playerX = -0.35;
+      state.speed = 0;
+      state.rpm = 0.18;
+      state.gear = 1;
+      state.steerAngle = 0;
+      state.driftFactor = 0;
+      state.exhaustFlame = 0;
+      state.fuel = 100;
+      state.fuelMap = 1;
+      state.tireWear = 100;
+      state.pitRequested = false;
+      state.pitAutoFill = false;
+      state.pitTimer = 0;
+      state.cleanRace = true;
+      state.slipstream = false;
+      state.offTrack = false;
+      state.onKerb = false;
+      state.particles = [];
+
+      // Reset UI flags
+      document.getElementById('pit-request-btn').classList.remove('pit-requested');
+      document.getElementById('pit-request-btn').textContent = '🏁 Box In';
+      document.getElementById('mfd-panel').classList.remove('low-fuel-alert');
+      pitOverlay.style.display = 'none';
+      resultsOverlay.style.display = 'none';
+      menuOverlay.style.display = 'none';
+      hudOverlay.style.display = 'flex';
+      hideStatusPill();
+
+      // Spawn 5 AI Rivals staggered ahead on the starting grid
+      state.aiCars = AI_DRIVERS.map((ai, i) => {
+        const gridSlot = 5 - i; // P1..P5 ahead of player
+        const startZ = (22 + gridSlot * 4) * SEGMENT_LENGTH;
+        const laneX = (gridSlot % 2 === 0) ? -0.36 : 0.36;
+        return {
+          name: ai.name,
+          primaryColor: ai.color1,
+          secondaryColor: ai.color2,
+          accentColor: '#ffffff',
+          number: ai.number,
+          skill: ai.skill,
+          z: startZ,
+          totalZ: startZ,
+          x: laneX,
+          targetX: laneX,
+          speed: 0,
+          maxSpeed: 12100 + ai.skill * 1350,
+          lap: 1,
+          bestLap: 74 + (1 - ai.skill) * 45 + Math.random() * 1.5,
+          finished: false,
+          finishTime: 0
+        };
+      });
+
+      audio.init();
+      updateMFDDisplay();
+    }
+
+    // ==================== PIT STOP SYSTEM ====================
+    function enterPitLane() {
+      if (state.mode !== 'RACING') return;
+      state.mode = 'PIT';
+      state.speed = 0;
+      state.pitTimer = 0;
+      state.pitAutoFill = false;
+      state.pitRequested = false;
+      document.getElementById('pit-request-btn').classList.remove('pit-requested');
+      document.getElementById('pit-request-btn').textContent = '🏁 Box In';
+      hideStatusPill();
+      pitOverlay.style.display = 'block';
+      audio.silence();
+      audio.triggerBeep(520, 0.15);
+    }
+
+    function releaseFromPit() {
+      if (state.mode !== 'PIT') return;
+      pitOverlay.style.display = 'none';
+      state.mode = 'RACING';
+      state.playerX = 0.45;
+      state.speed = 4200; // Pit exit speed limiter release
+      state.gear = 3;
+      audio.triggerBeep(880, 0.14);
+      showStatusPill('PIT EXIT — CLEAR TRACK', 'rgba(0, 230, 118, 0.88)', 2200);
+    }
+
+    // ==================== PHYSICS & GAME LOOP UPDATE ====================
+    function update(dt) {
+      if (state.mode === 'MENU' || state.mode === 'FINISHED') return;
+
+      const playerCar = CARS[selectedCarIndex];
+
+      // Handle Countdown Phase
+      if (state.mode === 'COUNTDOWN') {
+        state.countdownTimer -= dt;
+        const countEl = document.getElementById('countdown-text');
+        const ceilVal = Math.ceil(state.countdownTimer - 0.5);
+        if (ceilVal > 0) {
+          countEl.textContent = ceilVal;
+          if (ceilVal < state.lastCountdownInt) {
+            state.lastCountdownInt = ceilVal;
+            audio.triggerBeep(440, 0.14);
+          }
+        } else if (state.countdownTimer > 0) {
+          countEl.textContent = 'GO!';
+          if (state.lastCountdownInt !== 0) {
+            state.lastCountdownInt = 0;
+            audio.triggerBeep(880, 0.28);
+          }
+        } else {
+          countEl.textContent = '';
+          state.mode = 'RACING';
+        }
+        // Rev engine on the grid
+        const revving = keys.up ? 0.85 : 0.22;
+        state.rpm += (revving - state.rpm) * dt * 8;
+        audio.update(state.rpm, keys.up, false, false, playerCar.engineType);
+        return;
+      }
+
+      // Handle Pit Stop Servicing Phase
+      if (state.mode === 'PIT') {
+        state.raceTime += dt;
+        state.currentLapTime += dt;
+        updateAICars(dt);
+
+        // Refuel & change tires smoothly
+        state.fuel = Math.min(100, state.fuel + dt * 19.5);
+        state.tireWear = Math.min(100, state.tireWear + dt * 28);
+
+        const avgProgress = Math.min(100, (state.fuel + state.tireWear) / 2);
+        document.getElementById('pit-bar-fill').style.width = `${avgProgress}%`;
+        document.getElementById('pit-fuel-readout').textContent = `Fuel: ${Math.round(state.fuel)}%`;
+        document.getElementById('pit-tire-readout').textContent = `Tires: ${Math.round(state.tireWear)}%`;
+
+        if (state.fuel >= 99.9 && state.tireWear >= 99.9) {
+          document.getElementById('pit-status-text').textContent = 'Service Complete! Ready to Launch.';
+          if (state.pitAutoFill) {
+            releaseFromPit();
+          }
+        }
+        updateHUD();
+        return;
+      }
+
+      // ==================== ACTIVE RACING PHYSICS ====================
+      state.raceTime += dt;
+      state.currentLapTime += dt;
+
+      // Fuel Map Modifiers (1 = Max Power / Max Burn, 6 = Lean Power / Eco Burn)
+      const fmPowerMult = 1.0 - (state.fuelMap - 1) * 0.042;
+      const fmBurnMult = 1.0 - (state.fuelMap - 1) * 0.125;
+
+      // Out-of-fuel limp mode penalty
+      const outOfFuelMult = state.fuel <= 0.05 ? 0.42 : 1.0;
+
+      // Top Speed & Acceleration calculations
+      const baseMaxSpeed = (playerCar.maxSpeed / 338) * 13600;
+      const slipstreamBonus = state.slipstream ? 850 : 0;
+      const effectiveMaxSpeed = (baseMaxSpeed * fmPowerMult * outOfFuelMult) + slipstreamBonus;
+
+      const accelRate = (4600 + playerCar.accel * 2400) * fmPowerMult * outOfFuelMult;
+      const brakeRate = 11500;
+      const coastDecel = 2100;
+      const offTrackDecel = 6200;
+
+      // Longitudinal Speed Update
+      if (keys.up) {
+        state.speed += accelRate * dt;
+      } else if (keys.down) {
+        state.speed -= brakeRate * dt;
+      } else {
+        state.speed -= coastDecel * dt;
+      }
+
+      // Off-track grass/gravel penalty
+      state.offTrack = Math.abs(state.playerX) > 1.08;
+      state.onKerb = Math.abs(state.playerX) >= 0.96 && Math.abs(state.playerX) <= 1.12;
+
+      if (state.offTrack && state.speed > effectiveMaxSpeed * 0.46) {
+        state.speed -= offTrackDecel * dt;
+      }
+
+      state.speed = Math.max(0, Math.min(effectiveMaxSpeed, state.speed));
+
+      // 6-Speed Automatic Gearbox & RPM Simulation
+      const speedRatio = state.speed / 13600;
+      const targetGear = Math.max(1, Math.min(6, Math.floor(speedRatio * 6) + 1));
+      if (targetGear > state.gear && state.speed > 1200) {
+        state.exhaustFlame = 1.0;
+        audio.triggerShiftPop();
+      }
+      state.gear = targetGear;
+      state.exhaustFlame = Math.max(0, state.exhaustFlame - dt * 4.5);
+
+      const gearMin = (state.gear - 1) / 6;
+      const gearMax = state.gear / 6;
+      const rawRpm = state.speed < 150
+        ? 0.18 + (keys.up ? 0.25 : 0)
+        : 0.34 + ((speedRatio - gearMin) / (gearMax - gearMin)) * 0.64;
+      state.rpm += (Math.min(1, Math.max(0.15, rawRpm)) - state.rpm) * dt * 14;
+
+      // Steering, Tire Grip & Centrifugal Force
+      const currentSeg = findSegment(state.position);
+      const speedNorm = state.speed / 13600;
+      const tireGripFactor = 0.62 + (state.tireWear / 100) * 0.38;
+      const driftMult = keys.drift && state.speed > 3500 ? 1.38 : 1.0;
+
+      let targetSteer = 0;
+      if (keys.left) targetSteer = -1;
+      if (keys.right) targetSteer = 1;
+      state.steerAngle += (targetSteer - state.steerAngle) * dt * 11;
+
+      const steerAgility = (1.45 + playerCar.handling * 0.85) * tireGripFactor * driftMult;
+      if (state.speed > 80) {
+        state.playerX += state.steerAngle * steerAgility * Math.min(1.1, speedNorm * 1.45) * dt;
+        // Centrifugal push from road curvature
+        state.playerX -= (currentSeg.curve * 0.42 * speedNorm * speedNorm) * dt / tireGripFactor;
+      }
+
+      // Hard track boundary walls
+      if (state.playerX < -1.85) {
+        state.playerX = -1.85;
+        state.speed *= 0.94;
+      } else if (state.playerX > 1.85) {
+        state.playerX = 1.85;
+        state.speed *= 0.94;
+      }
+
+      // Drift & Tire Smoke Particles
+      const isSliding = (keys.drift && Math.abs(state.steerAngle) > 0.25 && state.speed > 4200) ||
+                        (Math.abs(currentSeg.curve) > 2.8 && speedNorm > 0.78 && tireGripFactor < 0.82);
+
+      if (isSliding || state.offTrack) {
+        spawnTireParticle(isSliding ? 'rgba(241,245,249,0.45)' : 'rgba(168,140,105,0.55)');
+      }
+
+      // Fuel Consumption & Tire Wear
+      if (state.speed > 200) {
+        const throttleLoad = keys.up ? 1.0 : 0.25;
+        const fuelBurnPerSec = (1.28 / playerCar.fuelEff) * fmBurnMult * throttleLoad;
+        state.fuel = Math.max(0, state.fuel - fuelBurnPerSec * dt);
+
+        const cornerLoad = 1 + Math.abs(currentSeg.curve) * 0.22 + (isSliding ? 1.4 : 0);
+        const tireWearPerSec = (0.85 / playerCar.tireLife) * speedNorm * cornerLoad;
+        state.tireWear = Math.max(5, state.tireWear - tireWearPerSec * dt);
+      }
+
+      // Advance Player Position & Lap Counting
+      const dz = state.speed * dt;
+      state.position += dz;
+      state.totalTrackZ += dz;
+
+      if (state.position >= trackLength) {
+        state.position -= trackLength;
+        if (state.currentLapTime < state.bestLapTime) {
+          state.bestLapTime = state.currentLapTime;
+        }
+        state.currentLapTime = 0;
+
+        if (state.lap >= totalLaps) {
+          finishRace();
+          return;
+        } else {
+          state.lap++;
+          audio.triggerBeep(740, 0.16);
+          if (state.lap === totalLaps) {
+            showStatusPill('FINAL LAP!', 'rgba(230, 0, 18, 0.9)', 2600);
+          } else {
+            showStatusPill(`LAP ${state.lap} / ${totalLaps}`, 'rgba(15, 23, 42, 0.9)', 2000);
+          }
+        }
+      }
+
+      // Check Pit Lane Entry Trigger
+      if (currentSeg.pitZone && (state.pitRequested || state.playerX > 0.72) && state.lap < totalLaps) {
+        if (state.playerX > 0.68 || state.pitRequested) {
+          enterPitLane();
+          return;
+        }
+      }
+
+      // Update AI Rivals, Slipstream & Collisions
+      updateAICars(dt);
+      checkSlipstreamAndCollisions();
+
+      // Update Status Banner Alerts (Low Fuel / Pit Ready / Slipstream)
+      if (state.fuel <= 18 && state.fuel > 0) {
+        document.getElementById('mfd-panel').classList.add('low-fuel-alert');
+        showStatusPill('⚠ LOW FUEL — BOX THIS LAP (PRESS P)', 'rgba(217, 119, 6, 0.92)');
+      } else {
+        document.getElementById('mfd-panel').classList.remove('low-fuel-alert');
+        if (state.pitRequested) {
+          showStatusPill('PIT ENTRY OPEN — KEEP RIGHT ON MAIN STRAIGHT', 'rgba(2, 132, 199, 0.92)');
+        } else if (state.slipstream) {
+          showStatusPill('SLIPSTREAM BOOST ACTIVE', 'rgba(0, 168, 255, 0.88)');
+        } else {
+          hideStatusPill();
+        }
+      }
+
+      // Update Particles & Engine Audio
+      updateParticles(dt);
+      audio.update(state.rpm, keys.up, isSliding, state.onKerb || state.offTrack, playerCar.engineType);
+      updateHUD();
+    }
+
+    function updateAICars(dt) {
+      const playerTotalZ = state.totalTrackZ;
+      state.aiCars.forEach(ai => {
+        const aiSeg = findSegment(ai.z);
+        // Rubber-banding subtle pace balance so races stay competitive
+        const distDiff = playerTotalZ - ai.totalZ;
+        const rubberBand = Math.max(0.92, Math.min(1.08, 1 + distDiff / (trackLength * 1.4)));
+        const cornerSlowdown = 1 - Math.min(0.24, Math.abs(aiSeg.curve) * 0.042);
+
+        const targetAiSpeed = ai.maxSpeed * cornerSlowdown * rubberBand;
+        ai.speed += (targetAiSpeed - ai.speed) * dt * 2.2;
+
+        const dz = ai.speed * dt;
+        ai.z += dz;
+        ai.totalZ += dz;
+        if (ai.z >= trackLength) {
+          ai.z -= trackLength;
+          ai.lap++;
+        }
+
+        // Gentle lane weaving to overtake or defend
+        if (Math.random() < 0.015) {
+          ai.targetX = (Math.random() * 1.3) - 0.65;
+        }
+        ai.x += (ai.targetX - ai.x) * dt * 1.4;
+      });
+    }
+
+    function checkSlipstreamAndCollisions() {
+      state.slipstream = false;
+      const pZ = state.position;
+
+      for (const ai of state.aiCars) {
+        let dz = ai.z - pZ;
+        if (dz < -trackLength / 2) dz += trackLength;
+        if (dz > trackLength / 2) dz -= trackLength;
+
+        const dx = Math.abs(ai.x - state.playerX);
+
+        // Slipstream Draft Zone (150 to 3200 units ahead in similar lateral line)
+        if (dz > 180 && dz < 3200 && dx < 0.34 && state.speed > 5500) {
+          state.slipstream = true;
+        }
+
+        // Car-to-Car Collision Detection
+        if (Math.abs(dz) < 175 && dx < 0.28) {
+          if (dz > 0 && state.speed > ai.speed) {
+            state.speed = Math.max(ai.speed * 0.82, state.speed * 0.78);
+            ai.speed *= 1.04;
+            state.cleanRace = false;
+            audio.triggerBeep(160, 0.1);
+          }
+          // Lateral bump separation
+          if (state.playerX < ai.x) {
+            state.playerX -= 0.06;
+            ai.x += 0.04;
+          } else {
+            state.playerX += 0.06;
+            ai.x -= 0.04;
+          }
+        }
       }
     }
 
-    function drawSardegnaGantry(centerX, y, halfW) {
-      const h = halfW * 0.55;
-      if (h < 15) return;
-      ctx.fillStyle = '#1e293b';
-      ctx.fillRect(centerX - halfW * 1.08, y - h, halfW * 0.08, h);
-      ctx.fillRect(centerX + halfW * 1.00, y - h, halfW * 0.08, h);
-      ctx.fillStyle = '#f8fafc';
-      ctx.fillRect(centerX - halfW * 1.08, y - h, halfW * 2.16, h * 0.22);
-      ctx.fillStyle = '#0f172a';
-      ctx.font = `bold ${Math.max(8, Math.floor(h * 0.14))}px Chakra Petch, sans-serif`;
-      ctx.textAlign = 'center';
-      ctx.fillText('SARDEGNA • WTC 800', centerX, y - h * 0.84);
+    function spawnTireParticle(color) {
+      if (state.particles.length > 45) return;
+      state.particles.push({
+        x: (Math.random() - 0.5) * 120,
+        y: 12,
+        vx: (Math.random() - 0.5) * 60,
+        vy: -25 - Math.random() * 35,
+        size: 8 + Math.random() * 10,
+        alpha: 0.75,
+        color
+      });
     }
 
-    function drawWindmill(x, y, h) {
-      if (h < 15) return;
-      ctx.fillStyle = '#cbd5e1';
-      ctx.beginPath();
-      ctx.moveTo(x - h * 0.05, y);
-      ctx.lineTo(x - h * 0.02, y - h);
-      ctx.lineTo(x + h * 0.02, y - h);
-      ctx.lineTo(x + h * 0.05, y);
-      ctx.fill();
-
-      const rot = performance.now() * 0.0012;
-      ctx.strokeStyle = '#f8fafc';
-      ctx.lineWidth = Math.max(1.5, h * 0.015);
-      for (let b = 0; b < 3; b++) {
-        const a = rot + (b * Math.PI * 2) / 3;
-        ctx.beginPath();
-        ctx.moveTo(x, y - h);
-        ctx.lineTo(x + Math.cos(a) * h * 0.42, y - h + Math.sin(a) * h * 0.42);
-        ctx.stroke();
+    function updateParticles(dt) {
+      for (let i = state.particles.length - 1; i >= 0; i--) {
+        const p = state.particles[i];
+        p.x += p.vx * dt;
+        p.y += p.vy * dt;
+        p.size += 24 * dt;
+        p.alpha -= 1.6 * dt;
+        if (p.alpha <= 0) state.particles.splice(i, 1);
       }
     }
 
-    // ==================== HUD & MINIMAP UPDATE ====================
-    function updateHUD() {
-      if (gameState === 'MENU' || gameState === 'FINISHED') return;
+    // ==================== MAIN PSEUDO-3D FRAME RENDERER ====================
+    function render() {
+      const width = canvas.width;
+      const height = canvas.height;
+      ctx.clearRect(0, 0, width, height);
 
-      const standings = computeStandings();
-      const pos = standings.findIndex(s => s.isPlayer) + 1;
-      document.getElementById('hud-pos').innerHTML = `${pos}<span>/6</span>`;
-      document.getElementById('hud-lap').innerHTML = `${Math.min(player.lap, totalLaps)}<span>/${totalLaps}</span>`;
+      if (segments.length === 0) return;
 
-      // Gap to leader
-      const leaderProg = standings[0].progress;
-      const playerProg = (player.lap - 1) * trackLength + player.z;
-      const gapMeters = Math.max(0, (leaderProg - playerProg) * 0.05);
-      document.getElementById('hud-gap').textContent = pos === 1 ? 'LEADER' : `+${(gapMeters / 65).toFixed(2)}s`;
+      const baseSegment = findSegment(state.position);
+      const basePercent = (state.position % SEGMENT_LENGTH) / SEGMENT_LENGTH;
+      const playerY = baseSegment.p1.world.y + (baseSegment.p2.world.y - baseSegment.p1.world.y) * basePercent;
+      const playerSlope = baseSegment.p2.world.y - baseSegment.p1.world.y;
 
-      // Lap Timers
-      document.getElementById('hud-cur-lap').textContent = formatTime(player.lapTime);
-      if (player.bestLap !== null) {
-        document.getElementById('hud-best-lap').textContent = formatTime(player.bestLap);
+      // Sky & Sardinian Sunset Backdrop
+      renderSunsetSkyAndHorizon(width, height, baseSegment, playerSlope * 0.25);
+
+      let maxy = height;
+      let x = 0;
+      let dx = -(baseSegment.curve * basePercent);
+
+      // Clear segment car buckets
+      for (let i = 0; i < DRAW_DISTANCE; i++) {
+        const seg = segments[(baseSegment.index + i) % segments.length];
+        seg.cars = [];
       }
 
-      // Speedometer & Gear
-      const kmh = Math.round(player.speed * 0.024);
-      document.getElementById('hud-speed').textContent = kmh;
-      const gear = kmh === 0 ? 'N' : Math.min(6, Math.max(1, Math.ceil(kmh / 56)));
-      document.getElementById('hud-gear').textContent = gear;
+      // Place AI cars into visible segments
+      for (const ai of state.aiCars) {
+        const aiSeg = findSegment(ai.z);
+        let segDist = aiSeg.index - baseSegment.index;
+        if (segDist < 0) segDist += segments.length;
+        if (segDist >= 0 && segDist < DRAW_DISTANCE) {
+          aiSeg.cars.push(ai);
+        }
+      }
 
-      const gearRatio = kmh === 0 ? 0 : ((kmh % 56) / 56);
-      const rpmPct = kmh === 0 ? (keys.up ? 65 : 14) : Math.min(98, 28 + gearRatio * 70);
-      document.getElementById('rpm-bar-fill').style.width = `${rpmPct}%`;
+      // Front-to-Back Road Projection Pass
+      for (let n = 0; n < DRAW_DISTANCE; n++) {
+        const segment = segments[(baseSegment.index + n) % segments.length];
+        const looped = segment.index < baseSegment.index;
+        const camZ = state.position - (looped ? trackLength : 0);
 
-      // Fuel & Tire Gauges
-      const fuelPct = Math.round(player.fuel);
-      // Accurate remaining laps estimate based on active Fuel Map burn rate
-      const lapsPerTank = 1.35 + (player.fuelMap - 1) * 0.29;
-      const estLaps = ((player.fuel / 100) * lapsPerTank).toFixed(1);
-      document.getElementById('hud-fuel-pct').textContent = `${fuelPct}% (${estLaps} Laps)`;
-      const fuelBar = document.getElementById('hud-fuel-bar');
-      fuelBar.style.width = `${fuelPct}%`;
-      fuelBar.style.backgroundColor = fuelPct <= 26 ? '#ef4444' : '#ff9800';
+        project(segment.p1, (state.playerX * ROAD_WIDTH) - x, playerY + CAMERA_HEIGHT, camZ, width, height);
+        project(segment.p2, (state.playerX * ROAD_WIDTH) - x - dx, playerY + CAMERA_HEIGHT, camZ, width, height);
 
-      const tirePct = Math.round(player.tireHealth);
-      document.getElementById('hud-tire-pct').textContent = `${tirePct}%`;
-      const tireBar = document.getElementById('hud-tire-bar');
-      tireBar.style.width = `${tirePct}%`;
-      tireBar.style.backgroundColor = tirePct < 30 ? '#ef4444' : tirePct < 60 ? '#facc15' : '#00e676';
+        x += dx;
+        dx += segment.curve;
 
-      renderMinimap();
+        segment.clip = maxy;
+
+        if (segment.p1.camera.z <= CAMERA_DEPTH || segment.p2.screen.y >= segment.p1.screen.y || segment.p2.screen.y >= maxy) {
+          continue;
+        }
+
+        renderSegment(width, height, segment);
+        maxy = segment.p1.screen.y;
+      }
+
+      // Back-to-Front Sprites & AI Cars Painter's Algorithm Pass
+      for (let n = DRAW_DISTANCE - 1; n > 0; n--) {
+        const segment = segments[(baseSegment.index + n) % segments.length];
+
+        // Roadside Objects
+        for (const sprite of segment.sprites) {
+          const spriteScale = segment.p1.screen.scale;
+          const spriteX = segment.p1.screen.x + (spriteScale * sprite.offset * ROAD_WIDTH * width / 2);
+          const spriteY = segment.p1.screen.y;
+          renderRoadsideSprite(sprite, spriteScale, spriteX, spriteY, segment.clip, width);
+        }
+
+        // AI Rivals on this Segment
+        for (const ai of segment.cars) {
+          const aiPercent = (ai.z % SEGMENT_LENGTH) / SEGMENT_LENGTH;
+          const spriteScale = segment.p1.screen.scale + (segment.p2.screen.scale - segment.p1.screen.scale) * aiPercent;
+          const segScreenX = segment.p1.screen.x + (segment.p2.screen.x - segment.p1.screen.x) * aiPercent;
+          const segScreenY = segment.p1.screen.y + (segment.p2.screen.y - segment.p1.screen.y) * aiPercent;
+          const destX = segScreenX + (spriteScale * ai.x * ROAD_WIDTH * width / 2);
+          const carScale = spriteScale * width * 0.72;
+
+          if (carScale > 0.04 && segScreenY < segment.clip) {
+            drawCarGraphic(ctx, destX, segScreenY - carScale * 18, carScale, ai, 0, Math.abs(segment.curve) > 3.2, 0, false);
+          }
+        }
+      }
+
+      // Slipstream Wind Streaks
+      if (state.slipstream && state.mode === 'RACING') {
+        ctx.strokeStyle = 'rgba(125, 211, 252, 0.35)';
+        ctx.lineWidth = 2;
+        for (let s = 0; s < 10; s++) {
+          const sx = (width * 0.2) + ((s * 97 + performance.now() * 0.3) % (width * 0.6));
+          const sy = (height * 0.35) + ((s * 53 + performance.now() * 0.9) % (height * 0.55));
+          ctx.beginPath();
+          ctx.moveTo(sx, sy);
+          ctx.lineTo(sx + (sx - width / 2) * 0.18, sy + 55);
+          ctx.stroke();
+        }
+      }
+
+      // Render Player Machine in Foreground
+      if (state.mode !== 'MENU') {
+        const playerCar = CARS[selectedCarIndex];
+        const pCarX = width / 2;
+        const bounce = (state.onKerb || state.offTrack) && state.speed > 1000
+          ? (Math.sin(performance.now() * 0.06) * 3.5)
+          : (Math.sin(performance.now() * 0.025) * 1.1 * (state.speed / 13600));
+        const pCarY = height * 0.84 + bounce;
+        const pCarScale = Math.max(0.85, Math.min(1.42, width / 820));
+
+        // Tire Smoke / Dirt Particles behind rear wheels
+        for (const p of state.particles) {
+          ctx.fillStyle = p.color;
+          ctx.globalAlpha = Math.max(0, p.alpha);
+          ctx.beginPath();
+          ctx.arc(pCarX + p.x, pCarY + p.y, p.size, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+
+        drawCarGraphic(
+          ctx,
+          pCarX,
+          pCarY,
+          pCarScale,
+          playerCar,
+          state.steerAngle,
+          keys.down || state.mode === 'COUNTDOWN',
+          state.exhaustFlame,
+          playerCar.id === 'mazda787b'
+        );
+      }
+
+      // Render Track Minimap
+      if (state.mode !== 'MENU') {
+        renderMinimap();
+      }
     }
 
+    // ==================== MINIMAP RENDERER ====================
     function renderMinimap() {
-      mctx.clearRect(0, 0, minimapCanvas.width, minimapCanvas.height);
+      const mw = minimapCanvas.width;
+      const mh = minimapCanvas.height;
+      minimapCtx.clearRect(0, 0, mw, mh);
+
       if (minimapPoints.length === 0) return;
 
-      // Track Outline
-      mctx.strokeStyle = 'rgba(255, 255, 255, 0.38)';
-      mctx.lineWidth = 4;
-      mctx.beginPath();
-      minimapPoints.forEach((pt, idx) => {
-        if (idx === 0) mctx.moveTo(pt.x, pt.y);
-        else mctx.lineTo(pt.x, pt.y);
-      });
-      mctx.closePath();
-      mctx.stroke();
+      let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+      for (const pt of minimapPoints) {
+        if (pt.x < minX) minX = pt.x;
+        if (pt.x > maxX) maxX = pt.x;
+        if (pt.y < minY) minY = pt.y;
+        if (pt.y > maxY) maxY = pt.y;
+      }
 
-      // AI Dots
-      rivals.forEach(ai => {
-        const idx = Math.floor((((ai.z % trackLength) + trackLength) % trackLength) / SEGMENT_LENGTH) % minimapPoints.length;
-        const pt = minimapPoints[idx];
-        mctx.fillStyle = '#38bdf8';
-        mctx.beginPath();
-        mctx.arc(pt.x, pt.y, 3, 0, Math.PI * 2);
-        mctx.fill();
+      const pad = 14;
+      const scale = Math.min((mw - pad * 2) / (maxX - minX || 1), (mh - pad * 2) / (maxY - minY || 1));
+      const offsetX = (mw - (maxX - minX) * scale) / 2 - minX * scale;
+      const offsetY = (mh - (maxY - minY) * scale) / 2 - minY * scale;
+
+      // Track Ribbon
+      minimapCtx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
+      minimapCtx.lineWidth = 4;
+      minimapCtx.beginPath();
+      minimapPoints.forEach((pt, idx) => {
+        const px = pt.x * scale + offsetX;
+        const py = pt.y * scale + offsetY;
+        if (idx === 0) minimapCtx.moveTo(px, py);
+        else minimapCtx.lineTo(px, py);
+      });
+      minimapCtx.closePath();
+      minimapCtx.stroke();
+
+      // AI Car Dots
+      state.aiCars.forEach(ai => {
+        const segIdx = Math.floor((((ai.z % trackLength) + trackLength) % trackLength) / SEGMENT_LENGTH) % minimapPoints.length;
+        const pt = minimapPoints[segIdx];
+        minimapCtx.fillStyle = '#38bdf8';
+        minimapCtx.beginPath();
+        minimapCtx.arc(pt.x * scale + offsetX, pt.y * scale + offsetY, 3, 0, Math.PI * 2);
+        minimapCtx.fill();
       });
 
       // Player Dot
-      const pIdx = Math.floor((((player.z % trackLength) + trackLength) % trackLength) / SEGMENT_LENGTH) % minimapPoints.length;
+      const pIdx = Math.floor((((state.position % trackLength) + trackLength) % trackLength) / SEGMENT_LENGTH) % minimapPoints.length;
       const pPt = minimapPoints[pIdx];
-      mctx.fillStyle = '#ff5e1a';
-      mctx.beginPath();
-      mctx.arc(pPt.x, pPt.y, 4.5, 0, Math.PI * 2);
-      mctx.fill();
-      mctx.strokeStyle = '#ffffff';
-      mctx.lineWidth = 1.5;
-      mctx.stroke();
+      minimapCtx.fillStyle = '#ff5e1a';
+      minimapCtx.strokeStyle = '#ffffff';
+      minimapCtx.lineWidth = 1.5;
+      minimapCtx.beginPath();
+      minimapCtx.arc(pPt.x * scale + offsetX, pPt.y * scale + offsetY, 4.5, 0, Math.PI * 2);
+      minimapCtx.fill();
+      minimapCtx.stroke();
     }
 
-    function formatTime(sec) {
-      const mins = Math.floor(sec / 60);
-      const rem = sec % 60;
-      const whole = Math.floor(rem);
-      const ms = Math.floor((rem - whole) * 1000);
-      return `${mins}:${String(whole).padStart(2, '0')}.${String(ms).padStart(3, '0')}`;
+    // ==================== LIVE HUD & STANDINGS UPDATE ====================
+    function getLiveStandings() {
+      const playerCar = CARS[selectedCarIndex];
+      const racers = [
+        {
+          isPlayer: true,
+          name: `YOU • ${playerCar.name}`,
+          totalZ: state.totalTrackZ,
+          bestLap: state.bestLapTime
+        },
+        ...state.aiCars.map(ai => ({
+          isPlayer: false,
+          name: ai.name,
+          totalZ: ai.totalZ,
+          bestLap: ai.bestLap
+        }))
+      ];
+      racers.sort((a, b) => b.totalZ - a.totalZ);
+      return racers;
     }
 
-    // ==================== MAIN LOOP ====================
+    function updateMFDDisplay() {
+      const playerCar = CARS[selectedCarIndex];
+      document.getElementById('hud-fm-val').textContent = state.fuelMap;
+
+      // Estimate remaining laps based on current fuel map
+      const fmBurnMult = 1.0 - (state.fuelMap - 1) * 0.125;
+      const estLapsPerFullTank = 4.2 * playerCar.fuelEff / fmBurnMult;
+      const estLapsLeft = ((state.fuel / 100) * estLapsPerFullTank).toFixed(1);
+
+      document.getElementById('hud-fuel-pct').textContent = `${Math.round(state.fuel)}% (${estLapsLeft} Laps)`;
+      const fuelBar = document.getElementById('hud-fuel-bar');
+      fuelBar.style.width = `${state.fuel}%`;
+      fuelBar.style.backgroundColor = state.fuel < 20 ? '#ef4444' : '#ff9800';
+
+      document.getElementById('hud-tire-pct').textContent = `${Math.round(state.tireWear)}%`;
+      const tireBar = document.getElementById('hud-tire-bar');
+      tireBar.style.width = `${state.tireWear}%`;
+      tireBar.style.backgroundColor = state.tireWear < 35 ? '#f59e0b' : '#00e676';
+    }
+
+    function updateHUD() {
+      const standings = getLiveStandings();
+      const playerRank = standings.findIndex(r => r.isPlayer) + 1;
+      const leaderZ = standings[0].totalZ;
+
+      document.getElementById('hud-pos').innerHTML = `${playerRank}<span>/6</span>`;
+      document.getElementById('hud-lap').innerHTML = `${state.lap}<span>/${totalLaps}</span>`;
+
+      if (playerRank === 1) {
+        document.getElementById('hud-gap').textContent = 'LEADER';
+        document.getElementById('hud-gap').style.color = '#4ade80';
+      } else {
+        const gapSec = Math.max(0.05, (leaderZ - state.totalTrackZ) / 9500);
+        document.getElementById('hud-gap').textContent = `+${gapSec.toFixed(2)}s`;
+        document.getElementById('hud-gap').style.color = '#38bdf8';
+      }
+
+      document.getElementById('hud-cur-lap').textContent = formatTime(state.currentLapTime);
+      document.getElementById('hud-best-lap').textContent = formatTime(state.bestLapTime);
+
+      const kmh = Math.round((state.speed / 13600) * 338);
+      document.getElementById('hud-speed').textContent = kmh;
+      document.getElementById('hud-gear').textContent = state.speed < 80 ? 'N' : state.gear;
+      document.getElementById('rpm-bar-fill').style.width = `${Math.round(state.rpm * 100)}%`;
+
+      updateMFDDisplay();
+    }
+
+    // ==================== FINISH RACE & PODIUM RESULTS ====================
+    function finishRace() {
+      state.mode = 'FINISHED';
+      audio.silence();
+      audio.triggerBeep(880, 0.35);
+
+      const standings = getLiveStandings();
+      const playerRank = standings.findIndex(r => r.isPlayer) + 1;
+      const leaderZ = standings[0].totalZ;
+
+      const rankSuffix = playerRank === 1 ? '1ST PLACE — VICTORY!'
+        : playerRank === 2 ? '2ND PLACE — PODIUM FINISH!'
+        : playerRank === 3 ? '3RD PLACE — PODIUM FINISH!'
+        : `${playerRank}TH PLACE — RACE COMPLETE`;
+
+      document.getElementById('res-headline').textContent = rankSuffix;
+      document.getElementById('res-subline').textContent = `World Touring Car 800 • Sardegna Road Track (${totalLaps} Laps)`;
+
+      const tbody = document.getElementById('standings-body');
+      tbody.innerHTML = '';
+      standings.forEach((r, idx) => {
+        const tr = document.createElement('tr');
+        if (r.isPlayer) tr.className = 'player-row';
+        const gapStr = idx === 0 ? 'WINNER' : `+${Math.max(0.12, (leaderZ - r.totalZ) / 9500).toFixed(3)}s`;
+        tr.innerHTML = `
+          <td class="font-race">${idx + 1}</td>
+          <td>${r.name}</td>
+          <td class="font-race">${formatTime(r.bestLap)}</td>
+          <td class="font-race">${gapStr}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      // Calculate Prize Money with Lap Scale & Clean Race Bonus
+      const basePrizes = [325000, 195000, 130000, 90000, 65000, 45000];
+      const lapScale = totalLaps / 3;
+      const rawPrize = basePrizes[playerRank - 1] * lapScale;
+      const finalPrize = Math.round(state.cleanRace ? rawPrize * 1.5 : rawPrize);
+
+      playerCredits += finalPrize;
+      localStorage.setItem(STORAGE_KEY, String(playerCredits));
+      document.getElementById('credits-display').textContent = formatCredits(playerCredits);
+
+      document.getElementById('res-prize').textContent = `+ ${formatCredits(finalPrize)}`;
+      document.getElementById('res-bonus-label').textContent = state.cleanRace ? 'Clean Race Bonus' : 'Contact Penalty';
+      document.getElementById('res-bonus-val').textContent = state.cleanRace ? '+50% APPLIED' : 'NO BONUS';
+      document.getElementById('res-bonus-val').style.color = state.cleanRace ? '#4ade80' : '#f87171';
+
+      hudOverlay.style.display = 'none';
+      pitOverlay.style.display = 'none';
+      resultsOverlay.style.display = 'flex';
+    }
+
+    // ==================== FUEL MAP & PIT CONTROLS ====================
+    function changeFuelMap(delta) {
+      state.fuelMap = Math.max(1, Math.min(6, state.fuelMap + delta));
+      updateMFDDisplay();
+      audio.triggerBeep(520 + (6 - state.fuelMap) * 45, 0.06);
+    }
+
+    function setFuelMap(val) {
+      state.fuelMap = Math.max(1, Math.min(6, val));
+      updateMFDDisplay();
+      audio.triggerBeep(520 + (6 - state.fuelMap) * 45, 0.06);
+    }
+
+    function togglePitRequest() {
+      if (state.mode !== 'RACING') return;
+      state.pitRequested = !state.pitRequested;
+      const btn = document.getElementById('pit-request-btn');
+      btn.classList.toggle('pit-requested', state.pitRequested);
+      btn.textContent = state.pitRequested ? '🏁 Box Armed' : '🏁 Box In';
+      audio.triggerBeep(state.pitRequested ? 760 : 480, 0.09);
+    }
+
+    // ==================== EVENT LISTENERS (KEYBOARD, TOUCH, UI) ====================
+    function bindControls() {
+      // Keyboard Controls
+      window.addEventListener('keydown', (e) => {
+        const k = e.key.toLowerCase();
+        if (k === 'arrowleft' || k === 'a') keys.left = true;
+        if (k === 'arrowright' || k === 'd') keys.right = true;
+        if (k === 'arrowup' || k === 'w') keys.up = true;
+        if (k === 'arrowdown' || k === 's') keys.down = true;
+        if (e.code === 'Space') {
+          keys.drift = true;
+          if (state.mode === 'RACING') e.preventDefault();
+        }
+        if (k === 'q') changeFuelMap(-1);
+        if (k === 'e') changeFuelMap(1);
+        if (['1', '2', '3', '4', '5', '6'].includes(k)) setFuelMap(parseInt(k, 10));
+        if (k === 'p') togglePitRequest();
+      });
+
+      window.addEventListener('keyup', (e) => {
+        const k = e.key.toLowerCase();
+        if (k === 'arrowleft' || k === 'a') keys.left = false;
+        if (k === 'arrowright' || k === 'd') keys.right = false;
+        if (k === 'arrowup' || k === 'w') keys.up = false;
+        if (k === 'arrowdown' || k === 's') keys.down = false;
+        if (e.code === 'Space') keys.drift = false;
+      });
+
+      // Touch & Pointer Button Binding
+      function bindHoldButton(elId, keyProp) {
+        const btn = document.getElementById(elId);
+        const startHold = (e) => {
+          e.preventDefault();
+          keys[keyProp] = true;
+          btn.classList.add('pressed');
+        };
+        const endHold = (e) => {
+          e.preventDefault();
+          keys[keyProp] = false;
+          btn.classList.remove('pressed');
+        };
+        btn.addEventListener('touchstart', startHold, { passive: false });
+        btn.addEventListener('touchend', endHold, { passive: false });
+        btn.addEventListener('touchcancel', endHold, { passive: false });
+        btn.addEventListener('mousedown', startHold);
+        btn.addEventListener('mouseup', endHold);
+        btn.addEventListener('mouseleave', endHold);
+      }
+
+      bindHoldButton('btn-left', 'left');
+      bindHoldButton('btn-right', 'right');
+      bindHoldButton('btn-brake', 'down');
+      bindHoldButton('btn-gas', 'up');
+
+      // MFD Fuel Map Buttons
+      document.getElementById('fm-down').addEventListener('click', () => changeFuelMap(-1));
+      document.getElementById('fm-up').addEventListener('click', () => changeFuelMap(1));
+
+      // HUD Top Action Buttons
+      document.getElementById('pit-request-btn').addEventListener('click', togglePitRequest);
+
+      document.getElementById('toggle-sound-btn').addEventListener('click', (e) => {
+        audio.init();
+        audio.muted = !audio.muted;
+        e.target.textContent = audio.muted ? '🔇 Muted' : '🔊 Audio';
+      });
+
+      document.getElementById('quit-race-btn').addEventListener('click', () => {
+        state.mode = 'MENU';
+        audio.silence();
+        hudOverlay.style.display = 'none';
+        pitOverlay.style.display = 'none';
+        resultsOverlay.style.display = 'none';
+        menuOverlay.style.display = 'flex';
+      });
+
+      // Pit Stop Buttons
+      document.getElementById('pit-release-btn').addEventListener('click', () => {
+        releaseFromPit();
+      });
+
+      document.getElementById('pit-full-btn').addEventListener('click', () => {
+        state.pitAutoFill = true;
+        document.getElementById('pit-status-text').textContent = 'Topping off to 100% — Auto-launching...';
+        if (state.fuel >= 99.9 && state.tireWear >= 99.9) {
+          releaseFromPit();
+        }
+      });
+
+      // Menu & Results Navigation Buttons
+      document.getElementById('start-race-btn').addEventListener('click', setupRace);
+      document.getElementById('res-retry-btn').addEventListener('click', setupRace);
+      document.getElementById('res-menu-btn').addEventListener('click', () => {
+        state.mode = 'MENU';
+        resultsOverlay.style.display = 'none';
+        menuOverlay.style.display = 'flex';
+      });
+    }
+
+    // ==================== RESPONSIVE CANVAS & ANIMATION LOOP ====================
+    function resizeCanvas() {
+      const container = document.getElementById('game-container');
+      canvas.width = container.clientWidth;
+      canvas.height = container.clientHeight;
+    }
+
+    let lastTimestamp = 0;
     function gameLoop(timestamp) {
-      if (!lastFrameTime) lastFrameTime = timestamp;
-      const dt = Math.min(0.05, (timestamp - lastFrameTime) / 1000);
-      lastFrameTime = timestamp;
+      if (!lastTimestamp) lastTimestamp = timestamp;
+      const dt = Math.min(0.05, (timestamp - lastTimestamp) / 1000);
+      lastTimestamp = timestamp;
 
-      updateSimulation(dt);
-      renderScene();
-      updateHUD();
-
+      update(dt);
+      render();
       requestAnimationFrame(gameLoop);
     }
 
-    // ==================== EVENT LISTENERS ====================
-    window.addEventListener('keydown', e => {
-      if (e.code === 'ArrowUp' || e.code === 'KeyW') keys.up = true;
-      if (e.code === 'ArrowDown' || e.code === 'KeyS') keys.down = true;
-      if (e.code === 'ArrowLeft' || e.code === 'KeyA') keys.left = true;
-      if (e.code === 'ArrowRight' || e.code === 'KeyD') keys.right = true;
-      if (e.code === 'Space') keys.drift = true;
-
-      if (gameState === 'RACING') {
-        if (e.code === 'KeyQ') adjustFuelMap(-1);
-        if (e.code === 'KeyE') adjustFuelMap(1);
-        if (e.key >= '1' && e.key <= '6') {
-          player.fuelMap = parseInt(e.key, 10);
-          updateFuelMapUI();
-          showStatusPill(`FUEL MAP ${player.fuelMap}`);
-        }
-      }
-    });
-
-    window.addEventListener('keyup', e => {
-      if (e.code === 'ArrowUp' || e.code === 'KeyW') keys.up = false;
-      if (e.code === 'ArrowDown' || e.code === 'KeyS') keys.down = false;
-      if (e.code === 'ArrowLeft' || e.code === 'KeyA') keys.left = false;
-      if (e.code === 'ArrowRight' || e.code === 'KeyD') keys.right = false;
-      if (e.code === 'Space') keys.drift = false;
-    });
-
-    // Touch & Mouse On-Screen Buttons
-    function bindTouchButton(id, keyName) {
-      const el = document.getElementById(id);
-      const start = (e) => { e.preventDefault(); keys[keyName] = true; el.classList.add('pressed'); };
-      const end = (e) => { e.preventDefault(); keys[keyName] = false; el.classList.remove('pressed'); };
-      el.addEventListener('touchstart', start, { passive: false });
-      el.addEventListener('touchend', end, { passive: false });
-      el.addEventListener('mousedown', start);
-      el.addEventListener('mouseup', end);
-      el.addEventListener('mouseleave', end);
-    }
-
-    bindTouchButton('btn-left', 'left');
-    bindTouchButton('btn-right', 'right');
-    bindTouchButton('btn-gas', 'up');
-    bindTouchButton('btn-brake', 'down');
-
-    // UI Buttons
-    document.getElementById('start-race-btn').addEventListener('click', startRace);
-    document.getElementById('res-retry-btn').addEventListener('click', startRace);
-
-    document.getElementById('res-menu-btn').addEventListener('click', () => {
-      gameState = 'MENU';
-      audio.stop();
-      document.getElementById('results-overlay').style.display = 'none';
-      document.getElementById('menu-overlay').style.display = 'flex';
-    });
-
-    document.getElementById('quit-race-btn').addEventListener('click', () => {
-      gameState = 'MENU';
-      audio.stop();
-      document.getElementById('hud-overlay').style.display = 'none';
-      document.getElementById('menu-overlay').style.display = 'flex';
-    });
-
-    document.getElementById('toggle-sound-btn').addEventListener('click', (e) => {
-      audio.muted = !audio.muted;
-      e.target.textContent = audio.muted ? '🔇 Muted' : '🔊 Audio';
-    });
-
-    document.getElementById('fm-down').addEventListener('click', () => adjustFuelMap(-1));
-    document.getElementById('fm-up').addEventListener('click', () => adjustFuelMap(1));
-    document.getElementById('pit-release-btn').addEventListener('click', releaseFromPit);
-    document.getElementById('pit-full-btn').addEventListener('click', () => {
-      player.pitTargetFuel = 100;
-    });
-
-    // Boot
-    renderCarMenu();
-    buildTrack();
-    requestAnimationFrame(gameLoop);
+    window.onload = function () {
+      resizeCanvas();
+      window.addEventListener('resize', resizeCanvas);
+      initMenu();
+      bindControls();
+      buildSardegnaTrack();
+      requestAnimationFrame(gameLoop);
+    };
   </script>
 </body>
 </html>
