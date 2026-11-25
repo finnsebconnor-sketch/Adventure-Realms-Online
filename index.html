@@ -1,248 +1,38 @@
-import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Adventure Realms Online</title>
 
-const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x87ceeb);
-scene.fog = new THREE.Fog(0x87ceeb,50,350);
+    <link rel="stylesheet" href="./css/style.css">
+</head>
 
-const camera = new THREE.PerspectiveCamera(
-75,
-window.innerWidth/window.innerHeight,
-0.1,
-1000
-);
+<body>
 
-const renderer = new THREE.WebGLRenderer({
-antialias:true
-});
+    <div id="loading-screen">
+        <h1>🌎 Adventure Realms Online</h1>
+        <p>Loading World...</p>
 
-renderer.setSize(
-window.innerWidth,
-window.innerHeight
-);
+        <div id="character-select">
+            <button>⚔️ Shadow Knight</button>
+            <button>🚀 Galactic Explorer</button>
+            <button>🐉 Dragon Rider</button>
+            <button>🧙 Crystal Wizard</button>
+        </div>
 
-renderer.shadowMap.enabled = true;
+        <p>WASD = Move</p>
+    </div>
 
-document.body.appendChild(renderer.domElement);
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"
+        }
+    }
+    </script>
 
-// SUN
+    <script type="module" src="./js/main.js"></script>
 
-const sun = new THREE.DirectionalLight(
-0xffffff,
-2.5
-);
-
-sun.position.set(100,150,50);
-sun.castShadow = true;
-scene.add(sun);
-
-scene.add(
-new THREE.AmbientLight(
-0xffffff,
-0.8
-)
-);
-
-// TERRAIN
-
-const ground = new THREE.Mesh(
-new THREE.PlaneGeometry(
-800,
-800,
-100,
-100
-),
-new THREE.MeshStandardMaterial({
-color:0x3fba54
-})
-);
-
-ground.rotation.x = -Math.PI/2;
-ground.receiveShadow = true;
-
-scene.add(ground);
-
-// WATER
-
-const water = new THREE.Mesh(
-new THREE.CircleGeometry(
-35,
-64
-),
-new THREE.MeshStandardMaterial({
-color:0x2277ff,
-transparent:true,
-opacity:0.9
-})
-);
-
-water.rotation.x = -Math.PI/2;
-water.position.set(50,0.05,-40);
-
-scene.add(water);
-
-// PLAYER
-
-const player = new THREE.Group();
-
-const body = new THREE.Mesh(
-new THREE.CapsuleGeometry(
-0.7,
-1.8,
-4,
-8
-),
-new THREE.MeshStandardMaterial({
-color:0x3399ff,
-metalness:0.3,
-roughness:0.4
-})
-);
-
-body.castShadow = true;
-
-const head = new THREE.Mesh(
-new THREE.SphereGeometry(
-0.55,
-32,
-32
-),
-new THREE.MeshStandardMaterial({
-color:0xffccaa
-})
-);
-
-head.position.y = 1.8;
-
-player.add(body);
-player.add(head);
-
-scene.add(player);
-
-camera.position.set(
-0,
-5,
-10
-);
-
-// TREES
-
-for(let i=0;i<400;i++){
-
-const tree = new THREE.Group();
-
-const trunk = new THREE.Mesh(
-new THREE.CylinderGeometry(
-0.3,
-0.4,
-3
-),
-new THREE.MeshStandardMaterial({
-color:0x6a3c18
-})
-);
-
-trunk.position.y = 1.5;
-
-const leaves = new THREE.Mesh(
-new THREE.ConeGeometry(
-2,
-5,
-10
-),
-new THREE.MeshStandardMaterial({
-color:0x1c7d2d
-})
-);
-
-leaves.position.y = 5;
-
-tree.add(trunk);
-tree.add(leaves);
-
-tree.position.set(
-(Math.random()-0.5)*700,
-0,
-(Math.random()-0.5)*700
-);
-
-scene.add(tree);
-}
-
-// MOUNTAINS
-
-for(let i=0;i<60;i++){
-
-const mountain = new THREE.Mesh(
-new THREE.ConeGeometry(
-10 + Math.random()*20,
-30 + Math.random()*50,
-4
-),
-new THREE.MeshStandardMaterial({
-color:0x666666
-})
-);
-
-mountain.position.set(
-(Math.random()-0.5)*750,
-20,
-(Math.random()-0.5)*750
-);
-
-mountain.castShadow = true;
-
-scene.add(mountain);
-}
-
-const keys = {};
-
-window.addEventListener(
-"keydown",
-e=>keys[e.key.toLowerCase()]=true
-);
-
-window.addEventListener(
-"keyup",
-e=>keys[e.key.toLowerCase()]=false
-);
-
-function animate(){
-
-requestAnimationFrame(
-animate
-);
-
-const speed = 0.4;
-
-if(keys["w"])
-player.position.z -= speed;
-
-if(keys["s"])
-player.position.z += speed;
-
-if(keys["a"])
-player.position.x -= speed;
-
-if(keys["d"])
-player.position.x += speed;
-
-camera.position.lerp(
-new THREE.Vector3(
-player.position.x,
-player.position.y + 5,
-player.position.z + 10
-),
-0.05
-);
-
-camera.lookAt(
-player.position
-);
-
-renderer.render(
-scene,
-camera
-);
-}
-
-animate();
+</body>
+</html>
