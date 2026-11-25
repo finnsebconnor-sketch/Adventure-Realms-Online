@@ -1,1 +1,72 @@
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+}
 
+body{
+    overflow:hidden;
+    font-family:Arial, Helvetica, sans-serif;
+    background:#87ceeb;
+}
+
+canvas{
+    display:block;
+}
+
+#loading-screen{
+    position:absolute;
+    top:20px;
+    left:20px;
+    background:rgba(0,0,0,0.7);
+    color:white;
+    padding:20px;
+    border-radius:15px;
+    z-index:100;
+    min-width:280px;
+}
+
+#loading-screen h1{
+    margin-bottom:10px;
+}
+
+#character-select{
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+    margin-top:15px;
+    margin-bottom:15px;
+}
+
+#character-select button{
+    border:none;
+    padding:10px;
+    border-radius:10px;
+    cursor:pointer;
+    background:#3498db;
+    color:white;
+    font-weight:bold;
+    transition:0.2s;
+}
+
+#character-select button:hover{
+    background:#5dade2;
+    transform:scale(1.03);
+}
+
+.health-bar{
+    position:absolute;
+    top:20px;
+    right:20px;
+    width:250px;
+    height:30px;
+    background:#444;
+    border-radius:10px;
+    overflow:hidden;
+}
+
+.health-fill{
+    width:100%;
+    height:100%;
+    background:#2ecc71;
+}
